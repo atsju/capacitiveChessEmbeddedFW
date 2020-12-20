@@ -10,7 +10,6 @@ find_package(HAL COMPONENTS STM32L4 REQUIRED)
 
 add_subdirectory(BSP)
 
-# STM32F4-Discovery
 add_executable(capacitiveChessboardEmbeddedFW main.c)
 target_link_libraries(capacitiveChessboardEmbeddedFW 
     HAL::STM32::L4::RCC
