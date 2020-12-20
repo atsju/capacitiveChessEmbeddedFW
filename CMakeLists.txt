@@ -20,3 +20,9 @@ target_link_libraries(capacitiveChessboardEmbeddedFW
     STM32::NoSys 
     BSP
 )
+
+
+#always display the code size
+ADD_CUSTOM_TARGET(do_always ALL COMMAND arm-none-eabi-size --format=berkeley "capacitiveChessboardEmbeddedFW"
+                                DEPENDS capacitiveChessboardEmbeddedFW)
+
