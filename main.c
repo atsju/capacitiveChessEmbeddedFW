@@ -6,7 +6,16 @@ int main(void)
 {
     HAL_Init();
 
+    //TODO configure clock to max speed (reduce when everything is debugged)
+
     sharpMemoryLCD_init();
+    //TODO display some strings on LCD
+    //TODO test the buttons
+    //TODO test the SMPS
+    //TODO test the USB
+    //TODO test the ADC for capacitive measurements
+    //TODO test the EPD screen
+
 
     while(1)
     {
@@ -14,4 +23,14 @@ int main(void)
     }
 
     return 0;
+}
+
+
+void assert_failed(uint8_t *file, uint32_t line)
+{
+    // TODO print on screen before dying in while
+    while(1)
+    {
+        ;
+    }
 }
