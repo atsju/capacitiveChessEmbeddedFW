@@ -1,4 +1,4 @@
 set(CMAKE_INCLUDE_CURRENT_DIR TRUE)
 
-add_library(BSP INTERFACE) # INETERFACE is because I have no sources (yet ?)
+add_library(BSP INTERFACE)
 target_include_directories(BSP INTERFACE .)
