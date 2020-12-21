@@ -15,7 +15,7 @@
 SPI_HandleTypeDef SpiHandle;
 
 /**
- * @brief set SS pin
+ * @brief set or unset SS (Slave Select) pin
  *
  * @param ss slave select true to select
  */
