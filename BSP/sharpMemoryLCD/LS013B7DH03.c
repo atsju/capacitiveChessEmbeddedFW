@@ -1,13 +1,16 @@
 #include "LS013B7DH03.h"
+
 #include <stdbool.h>
 #include <stm32l4xx_hal.h>
+#include "fonts.h"
 
 /** Update pixel data */
 #define CMD_DATA_UPDATE (0x01)
 /** Clear internal memory */
 #define CMD_CLEAR       (0x04)
 
-
+#define SCREEN_HEIGHT   (128)
+#define SCREEN_LENGTH   (128)
 
 SPI_HandleTypeDef SpiHandle;
 
@@ -75,7 +78,7 @@ void sharpMemoryLCD_init(void)
     /* Pin D0 is SPI2 NSS */
     /* It is not driven by SPI2 peripheral because need to be enabled with high level */
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-    slaveSelect(false);
+    LCDslaveSelect(false);
 
     GPIO_InitStruct.Pin = GPIO_PIN_6;
     /* Pin D6 is DISP (for enabling display) */
@@ -142,10 +145,62 @@ void sharpMemoryLCD_clearScreen(void)
 {
     /* To clear sreen send CMD_CLEAR (3bit) + 16 additional dummy bits */
     uint8_t buffer[] = {CMD_CLEAR, 0x00};
-    slaveSelect(true);
+    LCDslaveSelect(true);
     if(HAL_SPI_Transmit(&SpiHandle, buffer, sizeof(buffer), 1000) != HAL_OK)
     {
         assert_param(false);
     }
-    slaveSelect(false);
+    LCDslaveSelect(false);
+}
+
+
+void sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar)
+{
+    uint8_t buffer[Font16.Height*SCREEN_LENGTH/Font16.Width];
+    // this init could be optimized later by only init the end of line + using SIMD
+    for(uint16_t i = 0; i<(Font16.Height*SCREEN_LENGTH/Font16.Width); i++)
+    {
+        buffer[i] = 0;
+    }
+
+    if(line < (SCREEN_LENGTH/Font16.Width))
+    {
+        uint16_t sreenX=0;
+        uint16_t XbytesPerFontChar = (Font16.Width+7)/8;
+        uint16_t bytesPerFontChar = XbytesPerFontChar*Font16.Height;
+        //end display at first character out of ascii (most common will be \0) or out of screen
+        for(uint8_t c=0; (c<nbChar) && (' '<=text[c]) && (text[c]<='~') && (c<(SCREEN_LENGTH/Font16.Width)); c++)
+        {
+            // here SIMD instructions could be used to process 4 lines in one instruction
+            for(uint8_t x=0; x<Font16.Width; x++)
+            {
+                for(uint8_t y=0; y<Font16.Height; y++)
+                {
+                    uint16_t currentByteInFont = bytesPerFontChar*(text[c]-' ') + XbytesPerFontChar*y + x/8;
+                    // could be optimized to do several pixel at one time to go until byte alignement
+                    buffer[y*SCREEN_LENGTH + sreenX/8] = (1<<(sreenX % 8) & Font16.table[currentByteInFont]);
+                }
+                sreenX++;
+            }
+        }
+
+        LCDslaveSelect(true);
+        uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
+        // send "data update" command
+        if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
+        {
+            assert_param(false);
+        }
+        // send the lines to update
+        if(HAL_SPI_Transmit(&SpiHandle, buffer, sizeof(buffer), 1000) != HAL_OK)
+        {
+            assert_param(false);
+        }
+        // send 16 dummy bits
+        if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
+        {
+            assert_param(false);
+        }
+        LCDslaveSelect(false);
+    }
 }

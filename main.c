@@ -9,7 +9,8 @@ int main(void)
     //TODO configure clock to max speed (reduce when everything is debugged)
 
     sharpMemoryLCD_init();
-    //TODO display some strings on LCD
+    sharpMemoryLCD_printTextLine(0, "hello world", 11);
+
     //TODO test the buttons
     //TODO test the SMPS
     //TODO test the USB
