@@ -3,17 +3,18 @@
 #define LS013B7DH03
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * @brief init needed peripherals and clear screen
  * Set timer to output extcomin signal (EXTMODE=H)
  */
-void sharpMemoryLCD_init(void);
+bool sharpMemoryLCD_init(void);
 
 /**
  * @brief Clear screen, put all pixels white
  */
-void sharpMemoryLCD_clearScreen(void);
+bool sharpMemoryLCD_clearScreen(void);
 
 /**
  * @brief Print text to screen on given line
@@ -25,7 +26,7 @@ void sharpMemoryLCD_clearScreen(void);
  * @param text pointer to the string to print
  * @param nbChar length of the string to display
  */
-void sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar);
+bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar);
 
 
 #endif
