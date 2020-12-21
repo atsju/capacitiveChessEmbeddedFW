@@ -17,7 +17,7 @@ SPI_HandleTypeDef SpiHandle;
 /**
  * @brief set or unset SS (Slave Select) pin
  *
- * @param ss slave select true to select
+ * @param ss slave select if  true, unselect if false
  */
 static void LCDslaveSelect(bool ss)
 {
