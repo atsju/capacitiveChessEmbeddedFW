@@ -18,6 +18,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW
     STM32::NoSys
     BSP
     sharpMemoryLCD
+    buttons
 )
 
 
