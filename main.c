@@ -1,6 +1,7 @@
 #include <stm32l4xx_hal.h>
 
 #include "LS013B7DH03.h"
+#include "buttons.h"
 
 int main(void)
 {
@@ -12,6 +13,7 @@ int main(void)
     sharpMemoryLCD_printTextLine(0, "hello world", 11);
 
     //TODO test the buttons
+    buttons_init();
     //TODO test the SMPS
     //TODO test the USB
     //TODO test the ADC for capacitive measurements
