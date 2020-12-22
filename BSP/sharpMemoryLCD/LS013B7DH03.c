@@ -67,11 +67,11 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
     bool returnSuccess = true;
 
     // check the data fits into screen and ends on line boundary
-    if(screenLine>0 && (screenLine+(nbBytes*8)/SCREEN_LENGTH)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_LENGTH/8))==0)
+    if(screenLine>0 && (screenLine+(nbBytes*8)/SCREEN_WIDTH)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
     {
         LCDslaveSelect(true);
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
-        for(uint16_t i=0; i<(nbBytes*8)/SCREEN_LENGTH ; i++)
+        for(uint16_t i=0; i<(nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH ; i++)
         {
             cmd_buffer[1] = screenLine+i;
             // send "data update" command to correct line
@@ -80,7 +80,7 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
                 returnSuccess = false;
             }
             // send one line of data from buffer
-            if(HAL_SPI_Transmit(&SpiHandle, pixelBuf+(i*SCREEN_LENGTH/8), SCREEN_LENGTH/8, 1000) != HAL_OK)
+            if(HAL_SPI_Transmit(&SpiHandle, pixelBuf+(i*SCREEN_WIDTH/NB_BIT_PER_BYTE), SCREEN_WIDTH/NB_BIT_PER_BYTE, 1000) != HAL_OK)
             {
                 returnSuccess= false;
             }
@@ -214,7 +214,7 @@ bool sharpMemoryLCD_clearScreen(void)
 bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar)
 {
     bool returnSuccess = true;
-    uint16_t nbBytePixelAsciiLine= Font16.Height*SCREEN_LENGTH/Font16.Width;
+    uint16_t nbBytePixelAsciiLine= Font16.Height*SCREEN_WIDTH/Font16.Width;
     uint8_t pixelBuf[nbBytePixelAsciiLine];
     memset(pixelBuf, 0, nbBytePixelAsciiLine);
 
@@ -224,7 +224,7 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
         uint16_t XbytesPerFontChar = (Font16.Width+NB_BIT_PER_BYTE-1)/NB_BIT_PER_BYTE;
         uint16_t bytesPerFontChar = XbytesPerFontChar*Font16.Height;
         //end display at first character out of ascii (most common will be \0) or out of screen
-        for(uint8_t c=0; (c<nbChar) && (' '<=text[c]) && (text[c]<='~') && (c<(SCREEN_LENGTH/Font16.Width)); c++)
+        for(uint8_t c=0; (c<nbChar) && (' '<=text[c]) && (text[c]<='~') && (c<(SCREEN_WIDTH/Font16.Width)); c++)
         {
             // here SIMD instructions could be used to process 4 lines in one instruction
             for(uint8_t x=0; x<Font16.Width; x++)
@@ -241,7 +241,7 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
                     // we need to update pixels inside a byte.
                     // modify the pixel/bit in the correct byte of the buffer
                     // by taking the correct bit in the correct byte of font table
-                    pixelBuf[y*SCREEN_LENGTH + screenX/8] |= (1<<(screenX % 8) & Font16.table[indexCurrentByteInFont]);
+                    pixelBuf[y*SCREEN_WIDTH + screenX/NB_BIT_PER_BYTE] |= (1<<(screenX % NB_BIT_PER_BYTE) & Font16.table[indexCurrentByteInFont]);
                 }
                 screenX++;
             }
