@@ -49,6 +49,46 @@ static const uint32_t topADCchanTable[NB_MULTIPLEX_PINS] = {
 
 
 ADC_HandleTypeDef AdcHandle;
+ADC_ChannelConfTypeDef sConfig;
+
+
+
+
+/**
+ * @brief configure ADC for selected channel and make ADC measurement sequence
+ *
+ * @param ADCrawMeas pointer to the output ADC value
+ * @param HAL_ADC_chan the ADC channel to convert
+ * @return true if everything went fine
+ */
+static bool convertADCchannel(uint16_t *ADCrawMeas, uint32_t HAL_ADC_chan)
+{
+    bool resultSuccess = true;
+
+    sConfig.Channel = HAL_ADC_chan;
+
+    if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
+    {
+        resultSuccess = false;
+    }
+
+    if (HAL_ADC_Start(&AdcHandle) != HAL_OK)
+    {
+        resultSuccess = false;
+    }
+
+    if (HAL_ADC_PollForConversion(&AdcHandle, 10) != HAL_OK || ADCrawMeas==NULL)
+    {
+        resultSuccess = false;
+    }
+    else
+    {
+        *ADCrawMeas = HAL_ADC_GetValue(&AdcHandle);
+    }
+
+    return resultSuccess;
+}
+
 
 bool capacitive_init(void)
 {
@@ -119,44 +159,48 @@ bool capacitive_init(void)
         resultSuccess = false;
     }
 
-    return resultSuccess;
-}
-
-// discharge the sample and hold cap by making a measurement to GND
-// charge the correct TOP plate to VCC
-// Enable corresponding OPAMP
-// the charged TOP pin configures to ADC input
-// sample and hold the TOP plate (will discharge "parasitic" cap into sample and hold)
-bool capacitive_getADCvalue(uint16_t *ADCrawMeas)
-{
-    bool resultSuccess = true;
-
-    ADC_ChannelConfTypeDef sConfig;
-    sConfig.Channel      = topADCchanTable[0];          /* Sampled channel number */
     sConfig.Rank         = ADC_REGULAR_RANK_1;          /* Rank of sampled channel number ADCx_CHANNEL */
     // ===> TODO need to check how long the OPAMP needs to stanilize
     sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;  /* Sampling time (number of clock cycles unit) */
     sConfig.SingleDiff   = ADC_SINGLE_ENDED;            /* Single-ended input channel */
     sConfig.OffsetNumber = ADC_OFFSET_NONE;             /* No offset subtraction */
 
-    if (HAL_ADC_ConfigChannel(&AdcHandle, &sConfig) != HAL_OK)
-    {
-        resultSuccess = false;
-    }
+    return resultSuccess;
+}
 
-    if (HAL_ADC_Start(&AdcHandle) != HAL_OK)
-    {
-        resultSuccess = false;
-    }
 
-    if (HAL_ADC_PollForConversion(&AdcHandle, 10) != HAL_OK || ADCrawMeas==NULL)
-    {
-        resultSuccess = false;
-    }
-    else
-    {
-        *ADCrawMeas = HAL_ADC_GetValue(&AdcHandle);
-    }
+
+
+bool capacitive_getADCvalue(uint16_t *ADCrawMeas)
+{
+    bool resultSuccess = true;
+    const uint8_t multiplexPin = 0; //TODO this is an intermediate step for development purpose
+
+    // 1) charge the correct TOP plate to VCC
+    HAL_GPIO_WritePin(topPortTable[multiplexPin], topPinTable[multiplexPin], GPIO_PIN_SET);
+    // 2) Enable corresponding OPAMP
+    HAL_GPIO_WritePin(enPortTable[multiplexPin], enPinTable[multiplexPin], GPIO_PIN_RESET);
+    // 3) discharge the sample and hold cap by making a measurement to GND
+    // this is made by converting on a channel that is on an output push-pull pin
+    // TODO must be checked if this actually works or if another troivk is needed
+    resultSuccess &= convertADCchannel(ADCrawMeas, topADCchanTable[(multiplexPin+1)%NB_MULTIPLEX_PINS]);
+    // 4) the charged TOP pin configures to ADC input
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Pin = topPinTable[multiplexPin];
+    HAL_GPIO_Init(topPortTable[multiplexPin], &GPIO_InitStruct);
+    // 5) sample and hold the TOP plate (will discharge "parasitic" cap into sample and hold)
+    resultSuccess &= convertADCchannel(ADCrawMeas, topADCchanTable[multiplexPin]);
+    // 6) put everything back to original configuration
+    // pin top is output
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    HAL_GPIO_Init(topPortTable[multiplexPin], &GPIO_InitStruct);
+    // pin top LOW level
+    HAL_GPIO_WritePin(topPortTable[multiplexPin], topPinTable[multiplexPin], GPIO_PIN_RESET);
+    // disable OPAMP
+    HAL_GPIO_WritePin(enPortTable[multiplexPin], enPinTable[multiplexPin], GPIO_PIN_SET);
 
     return resultSuccess;
 }
