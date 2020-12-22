@@ -12,6 +12,8 @@
 #define SCREEN_HEIGHT   (128)
 #define SCREEN_LENGTH   (128)
 
+#define NB_BIT_PER_BYTE (8)
+
 SPI_HandleTypeDef SpiHandle;
 
 /**
@@ -219,7 +221,7 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
     if(line < (SCREEN_HEIGHT/Font16.Height))
     {
         uint16_t screenX=0;
-        uint16_t XbytesPerFontChar = (Font16.Width+7)/8;
+        uint16_t XbytesPerFontChar = (Font16.Width+NB_BIT_PER_BYTE-1)/NB_BIT_PER_BYTE;
         uint16_t bytesPerFontChar = XbytesPerFontChar*Font16.Height;
         //end display at first character out of ascii (most common will be \0) or out of screen
         for(uint8_t c=0; (c<nbChar) && (' '<=text[c]) && (text[c]<='~') && (c<(SCREEN_LENGTH/Font16.Width)); c++)
@@ -234,12 +236,12 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
                     // 1D is for the current ASCII char in the table
                     // 1D is for the line inside the ASCII char description
                     // 1D is for the byte inside the pixel line of the the ASCII char description
-                    uint16_t currentByteInFont = bytesPerFontChar*(text[c]-' ') + XbytesPerFontChar*y + x/8;
+                    uint16_t indexCurrentByteInFont = bytesPerFontChar*(text[c]-' ') + XbytesPerFontChar*y + x/8;
                     // TODO could be optimized to do several pixel at one time to go until byte alignement
                     // we need to update pixels inside a byte.
                     // modify the pixel/bit in the correct byte of the buffer
                     // by taking the correct bit in the correct byte of font table
-                    pixelBuf[y*SCREEN_LENGTH + screenX/8] |= (1<<(screenX % 8) & Font16.table[currentByteInFont]);
+                    pixelBuf[y*SCREEN_LENGTH + screenX/8] |= (1<<(screenX % 8) & Font16.table[indexCurrentByteInFont]);
                 }
                 screenX++;
             }
