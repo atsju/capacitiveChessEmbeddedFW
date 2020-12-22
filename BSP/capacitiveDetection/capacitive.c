@@ -7,45 +7,60 @@
  */
 #define NB_MULTIPLEX_PINS    (16)
 
-/**
- * @brief list of TOP ports from top1 to top8 and topA to topH
- */
-static GPIO_TypeDef *const topPortTable[NB_MULTIPLEX_PINS] = {
-        GPIOA, GPIOA, GPIOA, GPIOA, GPIOC, GPIOC, GPIOC, GPIOC,
-        GPIOB, GPIOB, GPIOC, GPIOC, GPIOA, GPIOA, GPIOA, GPIOA
-    };
+typedef struct {
+    GPIO_TypeDef *const port;
+    uint32_t pin;
+} bspIO_s;
+
+typedef struct {
+    GPIO_TypeDef *const port;
+    uint32_t pin;
+    uint32_t adcChan;
+} bspIOan_s;
 
 /**
- * @brief list of EN ports from en1 to en8 and enA to enH
+ * @brief list of EN IOs from EN_1 to EN_8 and EN_A to EN_H
  */
-static GPIO_TypeDef *const enPortTable[NB_MULTIPLEX_PINS] = {
-        GPIOB, GPIOH, GPIOC, GPIOE, GPIOE, GPIOE, GPIOB, GPIOB,
-        GPIOD, GPIOD, GPIOD, GPIOB, GPIOB, GPIOE, GPIOE, GPIOE
-    };
+static const bspIO_s enIOtable[NB_MULTIPLEX_PINS]={
+    {GPIOB, GPIO_PIN_2},
+    {GPIOH, GPIO_PIN_0},
+    {GPIOC, GPIO_PIN_14},
+    {GPIOE, GPIO_PIN_6},
+    {GPIOE, GPIO_PIN_4},
+    {GPIOE, GPIO_PIN_0},
+    {GPIOB, GPIO_PIN_8},
+    {GPIOB, GPIO_PIN_6},
+    {GPIOD, GPIO_PIN_13},
+    {GPIOD, GPIO_PIN_11},
+    {GPIOD, GPIO_PIN_9},
+    {GPIOB, GPIO_PIN_13},
+    {GPIOB, GPIO_PIN_10},
+    {GPIOE, GPIO_PIN_14},
+    {GPIOE, GPIO_PIN_12},
+    {GPIOE, GPIO_PIN_10}
+};
 
 /**
- * @brief list of TOP pins from top1 to top8 and topA to topH
+ * @brief list of TOP IOs from TOP_1 to TOP_8 and TOP_A to TOP_H
  */
-static const uint32_t topPinTable[NB_MULTIPLEX_PINS] = {
-        GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_3, GPIO_PIN_2, GPIO_PIN_1, GPIO_PIN_0,
-        GPIO_PIN_1, GPIO_PIN_0, GPIO_PIN_5, GPIO_PIN_4, GPIO_PIN_7, GPIO_PIN_6, GPIO_PIN_5, GPIO_PIN_4
-    };
-
-/**
- * @brief list of EN pins from top1 to top8 and topA to topH
- */
-static const uint32_t enPinTable[NB_MULTIPLEX_PINS] = {
-        GPIO_PIN_2, GPIO_PIN_0, GPIO_PIN_14, GPIO_PIN_6, GPIO_PIN_4, GPIO_PIN_0, GPIO_PIN_8, GPIO_PIN_6,
-        GPIO_PIN_13, GPIO_PIN_11, GPIO_PIN_9, GPIO_PIN_13, GPIO_PIN_10, GPIO_PIN_14, GPIO_PIN_12, GPIO_PIN_10
-    };
-
-/**
- * @brief list of TOP pins corresponding ADC channels from top1 to top8 and topA to topH
- */
-static const uint32_t topADCchanTable[NB_MULTIPLEX_PINS] = {
-        ADC_CHANNEL_8, ADC_CHANNEL_7, ADC_CHANNEL_6, ADC_CHANNEL_5, ADC_CHANNEL_4, ADC_CHANNEL_3, ADC_CHANNEL_2, ADC_CHANNEL_1,
-        ADC_CHANNEL_16, ADC_CHANNEL_15, ADC_CHANNEL_14, ADC_CHANNEL_13, ADC_CHANNEL_12, ADC_CHANNEL_11, ADC_CHANNEL_10, ADC_CHANNEL_9
-    };
+static const bspIOan_s topIOtable[NB_MULTIPLEX_PINS]={
+    {GPIOA, GPIO_PIN_3, ADC_CHANNEL_8},
+    {GPIOA, GPIO_PIN_2, ADC_CHANNEL_7},
+    {GPIOA, GPIO_PIN_1, ADC_CHANNEL_6},
+    {GPIOA, GPIO_PIN_0, ADC_CHANNEL_5},
+    {GPIOC, GPIO_PIN_3, ADC_CHANNEL_4},
+    {GPIOC, GPIO_PIN_2, ADC_CHANNEL_3},
+    {GPIOC, GPIO_PIN_1, ADC_CHANNEL_2},
+    {GPIOC, GPIO_PIN_0, ADC_CHANNEL_1},
+    {GPIOB, GPIO_PIN_1, ADC_CHANNEL_16},
+    {GPIOB, GPIO_PIN_0, ADC_CHANNEL_15},
+    {GPIOC, GPIO_PIN_5, ADC_CHANNEL_14},
+    {GPIOC, GPIO_PIN_4, ADC_CHANNEL_13},
+    {GPIOA, GPIO_PIN_7, ADC_CHANNEL_12},
+    {GPIOA, GPIO_PIN_6, ADC_CHANNEL_11},
+    {GPIOA, GPIO_PIN_5, ADC_CHANNEL_10},
+    {GPIOA, GPIO_PIN_4, ADC_CHANNEL_9}
+};
 
 
 ADC_HandleTypeDef AdcHandle;
@@ -112,14 +127,14 @@ bool capacitive_init(void)
     for(uint8_t i=0; i<NB_MULTIPLEX_PINS; i++)
     {
         // init TOP pins to output GND
-        GPIO_InitStruct.Pin = topPinTable[i];
-        HAL_GPIO_Init(topPortTable[i], &GPIO_InitStruct);
-        HAL_GPIO_WritePin(topPortTable[i], topPinTable[i], GPIO_PIN_RESET);
+        GPIO_InitStruct.Pin = topIOtable[i].pin;
+        HAL_GPIO_Init(topIOtable[i].port, &GPIO_InitStruct);
+        HAL_GPIO_WritePin(topIOtable[i].port, topIOtable[i].pin, GPIO_PIN_RESET);
 
         // init EN pins to output VCC (MCP6043 has CSN pin)
-        GPIO_InitStruct.Pin = enPinTable[i];
-        HAL_GPIO_Init(enPortTable[i], &GPIO_InitStruct);
-        HAL_GPIO_WritePin(enPortTable[i], enPinTable[i], GPIO_PIN_SET);
+        GPIO_InitStruct.Pin = enIOtable[i].pin;
+        HAL_GPIO_Init(enIOtable[i].port, &GPIO_InitStruct);
+        HAL_GPIO_WritePin(enIOtable[i].port, enIOtable[i].pin, GPIO_PIN_SET);
     }
 
     /* **** Init the ADC **** */
@@ -177,30 +192,30 @@ bool capacitive_getADCvalue(uint16_t *ADCrawMeas)
     const uint8_t multiplexPin = 0; //TODO this is an intermediate step for development purpose
 
     // 1) charge the correct TOP plate to VCC
-    HAL_GPIO_WritePin(topPortTable[multiplexPin], topPinTable[multiplexPin], GPIO_PIN_SET);
+    HAL_GPIO_WritePin(topIOtable[multiplexPin].port, topIOtable[multiplexPin].pin, GPIO_PIN_SET);
     // 2) Enable corresponding OPAMP
-    HAL_GPIO_WritePin(enPortTable[multiplexPin], enPinTable[multiplexPin], GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(enIOtable[multiplexPin].port, enIOtable[multiplexPin].pin, GPIO_PIN_RESET);
     // 3) discharge the sample and hold cap by making a measurement to GND
     // this is made by converting on a channel that is on an output push-pull pin
     // TODO must be checked if this actually works or if another troivk is needed
-    resultSuccess &= convertADCchannel(ADCrawMeas, topADCchanTable[(multiplexPin+1)%NB_MULTIPLEX_PINS]);
+    resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[(multiplexPin+1)%NB_MULTIPLEX_PINS].adcChan);
     // 4) the charged TOP pin configures to ADC input
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Pin = topPinTable[multiplexPin];
-    HAL_GPIO_Init(topPortTable[multiplexPin], &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = topIOtable[multiplexPin].pin;
+    HAL_GPIO_Init(topIOtable[multiplexPin].port, &GPIO_InitStruct);
     // 5) sample and hold the TOP plate (will discharge "parasitic" cap into sample and hold)
-    resultSuccess &= convertADCchannel(ADCrawMeas, topADCchanTable[multiplexPin]);
+    resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[multiplexPin].adcChan);
     // 6) put everything back to original configuration
     // pin top is output
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    HAL_GPIO_Init(topPortTable[multiplexPin], &GPIO_InitStruct);
+    HAL_GPIO_Init(topIOtable[multiplexPin].port, &GPIO_InitStruct);
     // pin top LOW level
-    HAL_GPIO_WritePin(topPortTable[multiplexPin], topPinTable[multiplexPin], GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(topIOtable[multiplexPin].port, topIOtable[multiplexPin].pin, GPIO_PIN_RESET);
     // disable OPAMP
-    HAL_GPIO_WritePin(enPortTable[multiplexPin], enPinTable[multiplexPin], GPIO_PIN_SET);
+    HAL_GPIO_WritePin(enIOtable[multiplexPin].port, enIOtable[multiplexPin].pin, GPIO_PIN_SET);
 
     return resultSuccess;
 }
