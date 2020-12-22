@@ -1,6 +1,8 @@
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
+#include <stdbool.h>
+
 typedef enum button{
     BUTTON_CENTER,
     BUTTON_UP,
@@ -15,5 +17,14 @@ typedef enum button{
  *
  */
 void buttons_init(void);
+
+/**
+ * @brief return the state of a button
+ *
+ * @param button the button to read
+ * @return true when button is pressed
+ */
+bool buttons_isPressed(button_e button);
+
 
 #endif

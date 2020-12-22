@@ -2,14 +2,14 @@
 #include <stm32l4xx_hal.h>
 
 /**
- * @brief list of BUTTON ports in same order as @ref TODO
+ * @brief list of BUTTON ports in same order as @ref button_e
  */
 static GPIO_TypeDef *const buttonPortTable[NB_BUTTONS] = {
         GPIOH, GPIOB, GPIOD, GPIOE, GPIOD
     };
 
 /**
- * @brief list of BUTTON pins in same order as @ref TODO
+ * @brief list of BUTTON pins in same order as @ref button_e
  */
 static const uint32_t buttonPinTable[NB_BUTTONS] = {
         GPIO_PIN_3, GPIO_PIN_15, GPIO_PIN_8, GPIO_PIN_8, GPIO_PIN_15
@@ -31,4 +31,11 @@ void buttons_init(void)
         GPIO_InitStruct.Pin = buttonPinTable[i];
         HAL_GPIO_Init(buttonPortTable[i], &GPIO_InitStruct);
     }
+}
+
+bool buttons_isPressed(button_e button)
+{
+    GPIO_PinState state = HAL_GPIO_ReadPin(buttonPortTable[button], buttonPinTable[button]);
+
+    return state == GPIO_PIN_SET;
 }
