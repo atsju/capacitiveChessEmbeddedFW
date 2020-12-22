@@ -3,6 +3,7 @@
 #include "LS013B7DH03.h"
 #include "buttons.h"
 #include "capacitive.h"
+#include "led.h"
 #include <stdio.h>
 
 
@@ -17,13 +18,15 @@ int main(void)
 
     //TODO test the buttons
     buttons_init();
-    //TODO test the LEDs
     //TODO test the SMPS
     //TODO test the USB
     capacitive_init();
     //TODO test the EPD screen
     //TODO write of find some delay function because it will be needed
 
+
+    led_init();
+    led_blinkTest();
 
     while(1)
     {

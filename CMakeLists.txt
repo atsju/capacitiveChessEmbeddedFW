@@ -20,6 +20,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW
     sharpMemoryLCD
     buttons
     capacitiveDetection
+    led
 )
 
 
