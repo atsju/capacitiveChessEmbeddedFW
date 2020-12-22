@@ -3,33 +3,42 @@
 
 #define NB_LED_PER_EDGE (9)
 
-/**
- * @brief list of ANODE LED ports from LED_A to LED_I
- */
-static GPIO_TypeDef *const anodeLedPortTable[NB_LED_PER_EDGE] = {
-        GPIOD, GPIOD, GPIOD, GPIOB, GPIOB, GPIOE, GPIOE, GPIOE, GPIOE
-    };
+typedef struct {
+    GPIO_TypeDef *const port;
+    uint32_t pin;
+} bspIO_s;
 
 /**
- * @brief list of ANODE LED pins from LED_A to LED_I
+ * @brief list of ANODE LED IOs from LED_A to LED_I
  */
-static const uint32_t anodeLedPinTable[NB_LED_PER_EDGE] = {
-        GPIO_PIN_14, GPIO_PIN_12, GPIO_PIN_10, GPIO_PIN_14, GPIO_PIN_12, GPIO_PIN_15, GPIO_PIN_13, GPIO_PIN_11, GPIO_PIN_9
-    };
+static const bspIO_s anodeLedIOtable[NB_LED_PER_EDGE]={
+    {GPIOD, GPIO_PIN_14},
+    {GPIOD, GPIO_PIN_12},
+    {GPIOD, GPIO_PIN_10},
+    {GPIOB, GPIO_PIN_14},
+    {GPIOB, GPIO_PIN_12},
+    {GPIOE, GPIO_PIN_15},
+    {GPIOE, GPIO_PIN_13},
+    {GPIOE, GPIO_PIN_11},
+    {GPIOE, GPIO_PIN_9}
+};
+
 
 /**
- * @brief list of CATHODE LED ports from LED_1 to LED_9
+ * @brief list of CATHODE LED IOs from LED_1 to LED_9
  */
-static GPIO_TypeDef *const cathodeLedPortTable[NB_LED_PER_EDGE] = {
-        GPIOE, GPIOH, GPIOC, GPIOC, GPIOE, GPIOE, GPIOB, GPIOB, GPIOB
-    };
+static const bspIO_s cathodeLedIOtable[NB_LED_PER_EDGE]={
+    {GPIOE, GPIO_PIN_7},
+    {GPIOH, GPIO_PIN_1},
+    {GPIOC, GPIO_PIN_15},
+    {GPIOC, GPIO_PIN_13},
+    {GPIOE, GPIO_PIN_5},
+    {GPIOE, GPIO_PIN_3},
+    {GPIOB, GPIO_PIN_9},
+    {GPIOB, GPIO_PIN_7},
+    {GPIOB, GPIO_PIN_5}
+};
 
-/**
- * @brief list of CATHODE LED ppin from LED_1 to LED_9
- */
-static const uint32_t cathodeLedPinTable[NB_LED_PER_EDGE] = {
-        GPIO_PIN_7, GPIO_PIN_1, GPIO_PIN_15, GPIO_PIN_13, GPIO_PIN_5, GPIO_PIN_3, GPIO_PIN_9, GPIO_PIN_7, GPIO_PIN_5
-    };
 
 void led_init(void)
 {
@@ -48,16 +57,16 @@ void led_init(void)
     for(uint8_t i=0; i<NB_LED_PER_EDGE; i++)
     {
         // init TOP pins to output GND
-        GPIO_InitStruct.Pin = cathodeLedPinTable[i];
-        HAL_GPIO_Init(cathodeLedPortTable[i], &GPIO_InitStruct);
-        HAL_GPIO_WritePin(cathodeLedPortTable[i], cathodeLedPinTable[i], GPIO_PIN_SET);
+        GPIO_InitStruct.Pin = cathodeLedIOtable[i].pin;
+        HAL_GPIO_Init(cathodeLedIOtable[i].port, &GPIO_InitStruct);
+        HAL_GPIO_WritePin(cathodeLedIOtable[i].port, cathodeLedIOtable[i].pin, GPIO_PIN_SET);
     }
     for(uint8_t i=0; i<NB_LED_PER_EDGE; i++)
     {
         // init TOP pins to output GND
-        GPIO_InitStruct.Pin = anodeLedPinTable[i];
-        HAL_GPIO_Init(anodeLedPortTable[i], &GPIO_InitStruct);
-        HAL_GPIO_WritePin(anodeLedPortTable[i], anodeLedPinTable[i], GPIO_PIN_RESET);
+        GPIO_InitStruct.Pin = anodeLedIOtable[i].pin;
+        HAL_GPIO_Init(anodeLedIOtable[i].port, &GPIO_InitStruct);
+        HAL_GPIO_WritePin(anodeLedIOtable[i].port, anodeLedIOtable[i].pin, GPIO_PIN_RESET);
     }
 }
 
@@ -67,11 +76,11 @@ void led_blinkTest(void)
     {
         for(uint8_t k=0; k<NB_LED_PER_EDGE; k++)
         {
-            HAL_GPIO_WritePin(cathodeLedPortTable[k], cathodeLedPinTable[k], GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(anodeLedPortTable[a], anodeLedPinTable[a], GPIO_PIN_SET);
+            HAL_GPIO_WritePin(cathodeLedIOtable[k].port, cathodeLedIOtable[k].pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(anodeLedIOtable[a].port, anodeLedIOtable[a].pin, GPIO_PIN_SET);
             HAL_Delay(10);
-            HAL_GPIO_WritePin(cathodeLedPortTable[k], cathodeLedPinTable[k], GPIO_PIN_SET);
-            HAL_GPIO_WritePin(anodeLedPortTable[a], anodeLedPinTable[a], GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(cathodeLedIOtable[k].port, cathodeLedIOtable[k].pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(anodeLedIOtable[a].port, anodeLedIOtable[a].pin, GPIO_PIN_RESET);
         }
     }
 }
