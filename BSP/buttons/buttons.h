@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-typedef enum button{
+typedef enum {
     BUTTON_CENTER,
     BUTTON_UP,
     BUTTON_DOWN,
