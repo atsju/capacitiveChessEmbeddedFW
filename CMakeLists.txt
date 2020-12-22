@@ -17,6 +17,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW
     CMSIS::STM32::L4P5VG
     STM32::NoSys
     BSP
+    sharpMemoryLCD
 )
 
 
