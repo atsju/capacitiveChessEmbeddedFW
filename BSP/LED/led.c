@@ -63,5 +63,15 @@ void led_init(void)
 
 void led_blinkTest(void)
 {
-    ;
+    for(uint8_t a=0; a<NB_LED_PER_EDGE; a++)
+    {
+        for(uint8_t k=0; k<NB_LED_PER_EDGE; k++)
+        {
+            HAL_GPIO_WritePin(cathodeLedPortTable[k], cathodeLedPinTable[k], GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(anodeLedPortTable[a], anodeLedPinTable[a], GPIO_PIN_SET);
+            HAL_Delay(10);
+            HAL_GPIO_WritePin(cathodeLedPortTable[k], cathodeLedPinTable[k], GPIO_PIN_SET);
+            HAL_GPIO_WritePin(anodeLedPortTable[a], anodeLedPinTable[a], GPIO_PIN_RESET);
+        }
+    }
 }
