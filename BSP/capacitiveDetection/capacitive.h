@@ -2,17 +2,22 @@
 #define CAPACITIVE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * @brief Init peripherals required for capacitivement measurements
+ *
+ * @return true if init went fine
  */
-void capacitive_init(void);
+bool capacitive_init(void);
 
 /**
  * @brief A first debug/development function to make tests
  *
- * @return uint16_t the raw ADC value for a group of cells
+ * @param ADCrawMeas pointer to output the raw ADC value for a group of cells
+ * @return true if measurement went fine
  */
-uint16_t capacitive_getADCvalue(void);
+bool capacitive_getADCvalue(uint16_t *ADCrawMeas);
+
 
 #endif

@@ -28,9 +28,12 @@ int main(void)
     while(1)
     {
         char printBuffer[11];
-        uint16_t rawADC = capacitive_getADCvalue();
-        sprintf(printBuffer, "%i", rawADC);
-        sharpMemoryLCD_printTextLine(1, printBuffer, 10);
+        uint16_t rawADC;
+        bool allOK = capacitive_getADCvalue(&rawADC);
+        sprintf(printBuffer, "Fine:%i", allOK);
+        sharpMemoryLCD_printTextLine(2, printBuffer, 11);
+        sprintf(printBuffer, "val:%i", rawADC);
+        sharpMemoryLCD_printTextLine(2, printBuffer, 11);
 
         uint8_t c = buttons_isPressed(BUTTON_CENTER) ? 1:0;
         uint8_t u = buttons_isPressed(BUTTON_UP) ? 1:0;

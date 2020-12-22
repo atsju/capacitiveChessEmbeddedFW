@@ -27,5 +27,6 @@ target_sources(capacitiveDetection INTERFACE capacitiveDetection/capacitive.c)
 target_include_directories(capacitiveDetection INTERFACE capacitiveDetection)
 target_link_libraries(capacitiveDetection INTERFACE
     HAL::STM32::L4::GPIO
-    HAL::STM32::L4::ADC)
+    HAL::STM32::L4::ADC
+    HAL::STM32::L4::ADCEx)
 
