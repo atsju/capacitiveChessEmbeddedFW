@@ -10,7 +10,7 @@
 #define CMD_CLEAR       (0x04)
 
 #define SCREEN_HEIGHT   (128)
-#define SCREEN_LENGTH   (128)
+#define SCREEN_WIDTH   (128)
 
 #define NB_BIT_PER_BYTE (8)
 
