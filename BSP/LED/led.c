@@ -53,7 +53,7 @@ void led_init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
 
-    // cathode needs to be set high before anode to avoid anyblinking during powerup
+    // all cathodes need to be set high before any anode to avoid any blinking during powerup
     for(uint8_t i=0; i<NB_LED_PER_EDGE; i++)
     {
         // init TOP pins to output GND
