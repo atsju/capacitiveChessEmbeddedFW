@@ -16,6 +16,12 @@ target_link_libraries(sharpMemoryLCD INTERFACE
     HAL::STM32::L4::SPI
     font)
 
+add_library(led INTERFACE)
+target_sources(led INTERFACE LED/led.c)
+target_include_directories(led INTERFACE LED)
+target_link_libraries(led INTERFACE
+    HAL::STM32::L4::GPIO)
+
 add_library(buttons INTERFACE)
 target_sources(buttons INTERFACE buttons/buttons.c)
 target_include_directories(buttons INTERFACE buttons)
