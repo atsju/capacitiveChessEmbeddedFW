@@ -2,7 +2,9 @@
 
 #include "LS013B7DH03.h"
 #include "buttons.h"
+#include "capacitive.h"
 #include <stdio.h>
+
 
 int main(void)
 {
@@ -15,20 +17,29 @@ int main(void)
 
     //TODO test the buttons
     buttons_init();
+    //TODO test the LEDs
     //TODO test the SMPS
     //TODO test the USB
-    //TODO test the ADC for capacitive measurements
+    capacitive_init();
     //TODO test the EPD screen
+    //TODO write of find some delay function because it will be needed
 
 
     while(1)
     {
+        char printBuffer[11];
+        uint16_t rawADC;
+        bool allOK = capacitive_getADCvalue(&rawADC);
+        sprintf(printBuffer, "Fine:%i", allOK);
+        sharpMemoryLCD_printTextLine(2, printBuffer, 11);
+        sprintf(printBuffer, "val:%i", rawADC);
+        sharpMemoryLCD_printTextLine(2, printBuffer, 11);
+
         uint8_t c = buttons_isPressed(BUTTON_CENTER) ? 1:0;
         uint8_t u = buttons_isPressed(BUTTON_UP) ? 1:0;
         uint8_t d = buttons_isPressed(BUTTON_DOWN) ? 1:0;
         uint8_t l = buttons_isPressed(BUTTON_LEFT) ? 1:0;
         uint8_t r = buttons_isPressed(BUTTON_RIGHT) ? 1:0;
-        char printBuffer[11];
         sprintf(printBuffer, "%i %i %i %i %i",c,u,d,l,r);
         sharpMemoryLCD_printTextLine(5, "C U D L R", 11);
         sharpMemoryLCD_printTextLine(6, printBuffer, 11);

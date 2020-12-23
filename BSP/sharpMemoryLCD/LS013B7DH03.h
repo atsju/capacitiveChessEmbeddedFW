@@ -1,6 +1,6 @@
 
-#ifndef LS013B7DH03
-#define LS013B7DH03
+#ifndef LS013B7DH03_H
+#define LS013B7DH03_H
 
 #include <stdint.h>
 #include <stdbool.h>
