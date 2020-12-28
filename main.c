@@ -16,7 +16,8 @@ int main(void)
     SystemClockHSI_Config();
 
     sharpMemoryLCD_init();
-    sharpMemoryLCD_printTextLine(0, "hello world", 11);
+    HAL_Delay(100);
+
 
     //TODO test the buttons
     buttons_init();
@@ -38,7 +39,7 @@ int main(void)
         sprintf(printBuffer, "Fine:%i", allOK);
         sharpMemoryLCD_printTextLine(2, printBuffer, 11);
         sprintf(printBuffer, "val:%i", rawADC);
-        sharpMemoryLCD_printTextLine(2, printBuffer, 11);
+        sharpMemoryLCD_printTextLine(3, printBuffer, 11);
 
         uint8_t c = buttons_isPressed(BUTTON_CENTER) ? 1:0;
         uint8_t u = buttons_isPressed(BUTTON_UP) ? 1:0;
@@ -49,6 +50,7 @@ int main(void)
         sharpMemoryLCD_printTextLine(5, "C U D L R", 11);
         sharpMemoryLCD_printTextLine(6, printBuffer, 11);
 
+        HAL_Delay(500);
     }
 
     return 0;

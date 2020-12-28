@@ -218,8 +218,8 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
 {
     bool returnSuccess = true;
     uint16_t nbBytePixelAsciiLine = Font16.Height*SCREEN_WIDTH/NB_BIT_PER_BYTE;
-    uint8_t pixelBuf[nbBytePixelAsciiLine];
-    memset(pixelBuf, 0, nbBytePixelAsciiLine);
+    uint8_t pixelBuf[nbBytePixelAsciiLine]  __attribute__((aligned (4)));
+    memset(pixelBuf, 0xFF, nbBytePixelAsciiLine);
 
     if(line < (SCREEN_HEIGHT/Font16.Height))
     {
@@ -244,11 +244,26 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
                     // we need to update pixels inside a byte.
                     // modify the pixel/bit in the correct byte of the buffer
                     // by taking the correct bit in the correct byte of font table
-                    pixelBuf[(y*SCREEN_WIDTH + screenX)/NB_BIT_PER_BYTE] |= (1<<(screenX % NB_BIT_PER_BYTE) & Font16.table[indexCurrentByteInFont]);
+                    bool fontPixelBit = (1<<((NB_BIT_PER_BYTE-1)-(x % NB_BIT_PER_BYTE))) & Font16.table[indexCurrentByteInFont];
+                    if(fontPixelBit)
+                    {
+                        pixelBuf[(y*SCREEN_WIDTH + screenX)/NB_BIT_PER_BYTE] ^= 1<<((NB_BIT_PER_BYTE-1) - (screenX%NB_BIT_PER_BYTE));
+                    }
+
                 }
                 screenX++;
             }
         }
+        uint32_t * pixelBuf_p32 = (uint32_t*)pixelBuf;
+        // bit reversal of the whole array
+        for(uint16_t b=0; b<nbBytePixelAsciiLine/4; b++)
+        {
+            // reverse bits in 32bit word
+            *(pixelBuf_p32+b) = __RBIT(*(pixelBuf_p32+b));
+            // reverse bytes in 4byte word
+            *(pixelBuf_p32+b) = __REV(*(pixelBuf_p32+b));
+        }
+
         returnSuccess &= LCDupdateDisplay(line*Font16.Height + 1, pixelBuf, sizeof(pixelBuf));
     }
     else
