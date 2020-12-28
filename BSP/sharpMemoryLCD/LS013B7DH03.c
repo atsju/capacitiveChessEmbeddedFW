@@ -145,10 +145,10 @@ bool sharpMemoryLCD_init(void)
     TimHandle.Instance = TIM3;
     TimHandle.Init.Period        = 65535;
     TimHandle.Init.Prescaler     = 60000; // counter is counting at 120M/60k => 2kHz
-    TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4; // 500Hz
+    TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 1=2kHZ 4=500Hz => TODO this statement has no effect on frequency.
     TimHandle.Init.CounterMode   = TIM_COUNTERMODE_UP;
-    TimHandle.Init.Period        = 8; //500/8 => 60Hz period
-    TimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+    TimHandle.Init.Period        = 32; //2000/32 => 60Hz period
+    TimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
     if (HAL_TIM_PWM_Init(&TimHandle) != HAL_OK)
     {
@@ -174,7 +174,7 @@ bool sharpMemoryLCD_init(void)
     }
 
     SpiHandle.Instance               = SPI2;
-    SpiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; // ===> TODO set correct baudrate to 1Mbps
+    SpiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128; // ===> TODO set correct baudrate to 1Mbps
     SpiHandle.Init.Direction         = SPI_DIRECTION_1LINE;
     SpiHandle.Init.CLKPhase          = SPI_PHASE_1EDGE;
     SpiHandle.Init.CLKPolarity       = SPI_POLARITY_LOW;
