@@ -146,6 +146,7 @@ bool sharpMemoryLCD_init(void)
     TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4; // 500Hz
     TimHandle.Init.CounterMode   = TIM_COUNTERMODE_UP;
     TimHandle.Init.Period        = 8; //500/8 => 60Hz period
+    TimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
 
     if (HAL_TIM_PWM_Init(&TimHandle) != HAL_OK)
     {
@@ -214,13 +215,13 @@ bool sharpMemoryLCD_clearScreen(void)
 bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar)
 {
     bool returnSuccess = true;
-    uint16_t nbBytePixelAsciiLine= Font16.Height*SCREEN_WIDTH/Font16.Width;
+    uint16_t nbBytePixelAsciiLine = Font16.Height*SCREEN_WIDTH/Font16.Width;
     uint8_t pixelBuf[nbBytePixelAsciiLine];
     memset(pixelBuf, 0, nbBytePixelAsciiLine);
 
     if(line < (SCREEN_HEIGHT/Font16.Height))
     {
-        uint16_t screenX=0;
+        uint8_t screenX=0;
         uint16_t XbytesPerFontChar = (Font16.Width+NB_BIT_PER_BYTE-1)/NB_BIT_PER_BYTE;
         uint16_t bytesPerFontChar = XbytesPerFontChar*Font16.Height;
         //end display at first character out of ascii (most common will be \0) or out of screen
@@ -241,7 +242,7 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
                     // we need to update pixels inside a byte.
                     // modify the pixel/bit in the correct byte of the buffer
                     // by taking the correct bit in the correct byte of font table
-                    pixelBuf[y*SCREEN_WIDTH + screenX/NB_BIT_PER_BYTE] |= (1<<(screenX % NB_BIT_PER_BYTE) & Font16.table[indexCurrentByteInFont]);
+                    pixelBuf[(y*SCREEN_WIDTH + screenX)/NB_BIT_PER_BYTE] |= (1<<(screenX % NB_BIT_PER_BYTE) & Font16.table[indexCurrentByteInFont]);
                 }
                 screenX++;
             }
