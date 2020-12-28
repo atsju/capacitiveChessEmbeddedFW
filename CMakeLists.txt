@@ -14,6 +14,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     HAL::STM32::L4::RCC
     HAL::STM32::L4::GPIO
     HAL::STM32::L4::CORTEX
+    HAL::STM32::L4::PWREx
     CMSIS::STM32::L4P5VG
     STM32::NoSys
     BSP
