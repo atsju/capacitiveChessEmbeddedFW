@@ -106,17 +106,19 @@ bool sharpMemoryLCD_init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_TIM3_CLK_ENABLE();
+    __HAL_RCC_SPI2_CLK_ENABLE();
 
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
     GPIO_InitStruct.Pull = GPIO_NOPULL;
+
     GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
     GPIO_InitStruct.Pin = GPIO_PIN_4;
     /* Pin B0 is EXTCOMIN driven by TIM3_CH1 */
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
     GPIO_InitStruct.Pin = GPIO_PIN_1;
     /* Pin D1 is SPI2 CLK */
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -215,7 +217,7 @@ bool sharpMemoryLCD_clearScreen(void)
 bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar)
 {
     bool returnSuccess = true;
-    uint16_t nbBytePixelAsciiLine = Font16.Height*SCREEN_WIDTH/Font16.Width;
+    uint16_t nbBytePixelAsciiLine = Font16.Height*SCREEN_WIDTH/NB_BIT_PER_BYTE;
     uint8_t pixelBuf[nbBytePixelAsciiLine];
     memset(pixelBuf, 0, nbBytePixelAsciiLine);
 
