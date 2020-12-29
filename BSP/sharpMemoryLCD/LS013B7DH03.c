@@ -70,6 +70,7 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
     if(screenLine>0 && (screenLine+(nbBytes*8)/SCREEN_WIDTH)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
     {
         LCDslaveSelect(true);
+        HAL_Delay(1); //TODO this delay could be much less, but need a delay_us function
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
         for(uint16_t i=0; i<(nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH ; i++)
         {
@@ -90,6 +91,7 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
         {
             returnSuccess= false;
         }
+        HAL_Delay(1); //TODO this delay could be much less, but need a delay_us function
         LCDslaveSelect(false);
     }
     else
