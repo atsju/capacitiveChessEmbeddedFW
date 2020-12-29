@@ -6,15 +6,16 @@
 #include "led.h"
 #include <stdio.h>
 
+#define NB_ADC_MEAS_AVG (16)
+
 static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
-
 
 int main(void)
 {
     HAL_Init();
     SystemClockHSI_Config();
-
+    HAL_Delay(100);
     sharpMemoryLCD_init();
     HAL_Delay(100);
 
@@ -35,11 +36,20 @@ int main(void)
     {
         char printBuffer[11];
         uint16_t rawADC;
-        bool allOK = capacitive_getADCvalue(&rawADC);
+        uint32_t mean = 0;
+        bool allOK = true;
+        for(uint8_t i=0; i<NB_ADC_MEAS_AVG; i++)
+        {
+            capacitive_getADCvalue(&rawADC);
+            mean += rawADC;
+        }
+        mean/=NB_ADC_MEAS_AVG;
         sprintf(printBuffer, "Fine:%i", allOK);
         sharpMemoryLCD_printTextLine(2, printBuffer, 11);
-        sprintf(printBuffer, "val:%i", rawADC);
+        HAL_Delay(10);
+        sprintf(printBuffer, "val:%i", (uint16_t)mean);
         sharpMemoryLCD_printTextLine(3, printBuffer, 11);
+        HAL_Delay(10);
 
         uint8_t c = buttons_isPressed(BUTTON_CENTER) ? 1:0;
         uint8_t u = buttons_isPressed(BUTTON_UP) ? 1:0;
@@ -48,9 +58,11 @@ int main(void)
         uint8_t r = buttons_isPressed(BUTTON_RIGHT) ? 1:0;
         sprintf(printBuffer, "%i %i %i %i %i",c,u,d,l,r);
         sharpMemoryLCD_printTextLine(5, "C U D L R", 11);
+        HAL_Delay(10);
         sharpMemoryLCD_printTextLine(6, printBuffer, 11);
+        HAL_Delay(10);
 
-        HAL_Delay(500);
+        HAL_Delay(50);
     }
 
     return 0;

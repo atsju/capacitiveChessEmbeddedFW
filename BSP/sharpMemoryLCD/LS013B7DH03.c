@@ -112,7 +112,7 @@ bool sharpMemoryLCD_init(void)
 
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
 
     GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
