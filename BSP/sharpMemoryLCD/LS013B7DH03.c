@@ -50,6 +50,29 @@ static void LCDdisplayEnable(bool en)
     }
 }
 
+/**
+ * @brief adapt the bit and byte order so thats screen prints everything in expected direction
+ *
+ * @param pixelBuf display buffer where one bit is one pixel. This pointer must be 4byte
+ * @param nbBytePixelAsciiLine length of buffer. This must be multiple of 4
+ */
+static void reorderBitsToScreen(uint8_t *pixelBuf, uint16_t nbBytePixelAsciiLine)
+{
+    // check the pointer is byte aligned
+    assert_param(((uint32_t)pixelBuf%4) == 0);
+    // check length is multiple of 4
+    assert_param((nbBytePixelAsciiLine%4) == 0);
+
+    uint32_t * pixelBuf_p32 = (uint32_t*)pixelBuf;
+    // bit reversal of the whole array
+    for(uint16_t b=0; b<nbBytePixelAsciiLine/4; b++)
+    {
+        // reverse bits in 32bit word
+        *(pixelBuf_p32+b) = __RBIT(*(pixelBuf_p32+b));
+        // reverse bytes in 4byte word
+        *(pixelBuf_p32+b) = __REV(*(pixelBuf_p32+b));
+    }
+}
 
 /**
  * @brief update the required lines in the screen
@@ -69,6 +92,7 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
     // check the data fits into screen and ends on line boundary
     if(screenLine>0 && (screenLine+(nbBytes*8)/SCREEN_WIDTH)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
     {
+        reorderBitsToScreen(pixelBuf, nbBytes);
         LCDslaveSelect(true);
         HAL_Delay(1); //TODO this delay could be much less, but need a delay_us function
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
@@ -244,28 +268,21 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
                     uint16_t indexCurrentByteInFont = bytesPerFontChar*(text[c]-' ') + XbytesPerFontChar*y + x/8;
                     // TODO could be optimized to do several pixel at one time to go until byte alignement
                     // we need to update pixels inside a byte.
-                    // modify the pixel/bit in the correct byte of the buffer
-                    // by taking the correct bit in the correct byte of font table
-                    bool fontPixelBit = (1<<((NB_BIT_PER_BYTE-1)-(x % NB_BIT_PER_BYTE))) & Font16.table[indexCurrentByteInFont];
+                    // take the correct bit in the correct byte of font table
+                    uint8_t indexCurrentBitInFont = 1<<((NB_BIT_PER_BYTE-1)-(x % NB_BIT_PER_BYTE));
+                    bool fontPixelBit = indexCurrentBitInFont & Font16.table[indexCurrentByteInFont];
                     if(fontPixelBit)
                     {
-                        pixelBuf[(y*SCREEN_WIDTH + screenX)/NB_BIT_PER_BYTE] ^= 1<<((NB_BIT_PER_BYTE-1) - (screenX%NB_BIT_PER_BYTE));
+                        // modify the pixel/bit in the correct byte of the buffer
+                        uint16_t indexCurrentByteInScreen = (y*SCREEN_WIDTH + screenX)/NB_BIT_PER_BYTE;
+                        uint8_t indexCurretnBitInScreen = 1<<((NB_BIT_PER_BYTE-1) - (screenX%NB_BIT_PER_BYTE));
+                        pixelBuf[indexCurrentByteInScreen] ^= indexCurretnBitInScreen;
                     }
 
                 }
                 screenX++;
             }
         }
-        uint32_t * pixelBuf_p32 = (uint32_t*)pixelBuf;
-        // bit reversal of the whole array
-        for(uint16_t b=0; b<nbBytePixelAsciiLine/4; b++)
-        {
-            // reverse bits in 32bit word
-            *(pixelBuf_p32+b) = __RBIT(*(pixelBuf_p32+b));
-            // reverse bytes in 4byte word
-            *(pixelBuf_p32+b) = __REV(*(pixelBuf_p32+b));
-        }
-
         returnSuccess &= LCDupdateDisplay(line*Font16.Height + 1, pixelBuf, sizeof(pixelBuf));
     }
     else
