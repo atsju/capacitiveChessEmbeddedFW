@@ -52,25 +52,23 @@ static void LCDdisplayEnable(bool en)
 
 /**
  * @brief adapt the bit and byte order so thats screen prints everything in expected direction
+ * Bits need to be reversed in all bytes for this screen.
+ * And everything needs to be rotated because screen is upside down.
  *
- * @param pixelBuf display buffer where one bit is one pixel. This pointer must be 4byte
- * @param nbBytePixelAsciiLine length of buffer. This must be multiple of 4
+ * @param pixelBuf display buffer where one bit is one pixel.
+ * @param nbBytePixelAsciiLine length of buffer. This must be multiple of 2
  */
 static void reorderBitsToScreen(uint8_t *pixelBuf, uint16_t nbBytePixelAsciiLine)
 {
-    // check the pointer is byte aligned
-    assert_param(((uint32_t)pixelBuf%4) == 0);
-    // check length is multiple of 4
-    assert_param((nbBytePixelAsciiLine%4) == 0);
+    //TODO this could be optimized doing 4 bytes at a time (with __REV instruction)
+    // check length is multiple of 2
+    assert_param((nbBytePixelAsciiLine%2) == 0);
 
-    uint32_t * pixelBuf_p32 = (uint32_t*)pixelBuf;
-    // bit reversal of the whole array
-    for(uint16_t b=0; b<nbBytePixelAsciiLine/4; b++)
+    for(uint16_t b=0; b<nbBytePixelAsciiLine/2; b++)
     {
-        // reverse bits in 32bit word
-        *(pixelBuf_p32+b) = __RBIT(*(pixelBuf_p32+b));
-        // reverse bytes in 4byte word
-        *(pixelBuf_p32+b) = __REV(*(pixelBuf_p32+b));
+        uint8_t tmp = pixelBuf[b];
+        pixelBuf[b] = pixelBuf[nbBytePixelAsciiLine-1-b];
+        pixelBuf[nbBytePixelAsciiLine-1-b] = tmp;
     }
 }
 
@@ -98,7 +96,8 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
         for(uint16_t i=0; i<(nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH ; i++)
         {
-            cmd_buffer[1] = screenLine+i;
+            // screen is mounted upside down
+            cmd_buffer[1] = SCREEN_HEIGHT-screenLine+i;
             // send "data update" command to correct line
             if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
             {
