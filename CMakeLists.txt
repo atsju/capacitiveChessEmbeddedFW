@@ -8,6 +8,7 @@ find_package(CMSIS COMPONENTS STM32L4 REQUIRED)
 find_package(HAL COMPONENTS STM32L4 REQUIRED)
 
 add_subdirectory(BSP)
+add_subdirectory(Segger)
 
 add_executable(capacitiveChessboardEmbeddedFW.elf main.c)
 target_link_libraries(capacitiveChessboardEmbeddedFW.elf
@@ -22,6 +23,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     buttons
     capacitiveDetection
     led
+    SeggerRTT
 )
 
 

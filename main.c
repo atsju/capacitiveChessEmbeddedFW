@@ -4,10 +4,11 @@
 #include "buttons.h"
 #include "capacitive.h"
 #include "led.h"
+#include "SEGGER_RTT.h"
 #include <stdio.h>
 
 #define NB_ADC_MEAS_AVG_CALIB (64)
-#define NB_ADC_MEAS_AVG_DETECT (16)
+#define NB_ADC_MEAS_AVG_DETECT (64)
 
 static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
@@ -62,6 +63,8 @@ int main(void)
 
     while(1)
     {
+        SEGGER_RTT_WriteString(0, "SEGGER Hello World\r\n");
+
         uint16_t meas[NB_CAP_CHAN];
         for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
         {
