@@ -88,18 +88,19 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
 // when ST will finally change the HAL_SPI_Transmit API to const
 {
     bool returnSuccess = true;
+    uint8_t nbScreenLines = (nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH;
 
     // check the data fits into screen and ends on line boundary
-    if(screenLine>0 && (screenLine+(nbBytes*8)/SCREEN_WIDTH)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
+    if(screenLine>0 && (screenLine+nbScreenLines-1)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
     {
         reorderBitsToScreen(pixelBuf, nbBytes);
         LCDslaveSelect(true);
         HAL_Delay(1); //TODO this delay could be much less, but need a delay_us function
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
-        for(uint16_t i=0; i<(nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH ; i++)
+        for(uint16_t i=0; i<nbScreenLines ; i++)
         {
             // screen is mounted upside down
-            cmd_buffer[1] = SCREEN_HEIGHT-screenLine+i;
+            cmd_buffer[1] = (((SCREEN_HEIGHT-screenLine)+1)-nbScreenLines)+i;
             // send "data update" command to correct line
             if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), SPI_TIMEOUT_MS) != HAL_OK)
             {
