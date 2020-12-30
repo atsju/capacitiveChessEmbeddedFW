@@ -6,7 +6,8 @@
 #include "led.h"
 #include <stdio.h>
 
-#define NB_ADC_MEAS_AVG (16)
+#define NB_ADC_MEAS_AVG_CALIB (64)
+#define NB_ADC_MEAS_AVG_DETECT (16)
 
 static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
@@ -32,35 +33,67 @@ int main(void)
     led_init();
     led_blinkTest();
 
-    while(1)
+    sharpMemoryLCD_printTextLine(0, "calibrating", 11);
+    HAL_Delay(10);
+
+    uint16_t rawADC;
+    uint16_t calibs[NB_CAP_CHAN];
+    for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
     {
-        char printBuffer[11];
-        uint16_t rawADC;
         uint32_t mean = 0;
-        bool allOK = true;
-        for(uint8_t i=0; i<NB_ADC_MEAS_AVG; i++)
+        for(uint8_t i=0; i<NB_ADC_MEAS_AVG_CALIB; i++)
         {
-            capacitive_getADCvalue(&rawADC);
+            capacitive_getADCvalue(chan, &rawADC);
             mean += rawADC;
         }
-        mean/=NB_ADC_MEAS_AVG;
-        sprintf(printBuffer, "Fine:%i", allOK);
-        sharpMemoryLCD_printTextLine(2, printBuffer, 11);
-        HAL_Delay(10);
-        sprintf(printBuffer, "val:%i", (uint16_t)mean);
-        sharpMemoryLCD_printTextLine(3, printBuffer, 11);
-        HAL_Delay(10);
+        calibs[chan] = mean/NB_ADC_MEAS_AVG_CALIB;
+    }
 
-        uint8_t c = buttons_isPressed(BUTTON_CENTER) ? 1:0;
-        uint8_t u = buttons_isPressed(BUTTON_UP) ? 1:0;
-        uint8_t d = buttons_isPressed(BUTTON_DOWN) ? 1:0;
-        uint8_t l = buttons_isPressed(BUTTON_LEFT) ? 1:0;
-        uint8_t r = buttons_isPressed(BUTTON_RIGHT) ? 1:0;
-        sprintf(printBuffer, "%i %i %i %i %i",c,u,d,l,r);
-        sharpMemoryLCD_printTextLine(5, "C U D L R", 11);
+    char printBuffer[11];
+
+    for(uint8_t i=0; i<NB_CAP_CHAN/2; i++)
+    {
+        // one line and one colums value per screen line
+        sprintf(printBuffer, "%1i %4i %4i", i, calibs[i], calibs[i+NB_CAP_CHAN/2]);
+        sharpMemoryLCD_printTextLine(i, printBuffer, 11);
         HAL_Delay(10);
-        sharpMemoryLCD_printTextLine(6, printBuffer, 11);
-        HAL_Delay(10);
+    }
+    HAL_Delay(10000);
+
+    while(1)
+    {
+        uint16_t meas[NB_CAP_CHAN];
+        for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+        {
+            uint32_t mean = 0;
+            for(uint8_t i=0; i<NB_ADC_MEAS_AVG_DETECT; i++)
+            {
+                capacitive_getADCvalue(chan, &rawADC);
+                mean += rawADC;
+            }
+            meas[chan] = mean/NB_ADC_MEAS_AVG_DETECT;
+        }
+
+
+        for(uint8_t i=0; i<NB_CAP_CHAN/2; i++)
+        {
+            // one line and one colums value per screen line
+            sprintf(printBuffer, "%1i %4i %4i", i, calibs[i]-meas[i], calibs[i+NB_CAP_CHAN/2]-meas[i+NB_CAP_CHAN/2]);
+            sharpMemoryLCD_printTextLine(i, printBuffer, 11);
+            HAL_Delay(10);
+        }
+
+
+        //uint8_t c = buttons_isPressed(BUTTON_CENTER) ? 1:0;
+        //uint8_t u = buttons_isPressed(BUTTON_UP) ? 1:0;
+        //uint8_t d = buttons_isPressed(BUTTON_DOWN) ? 1:0;
+        //uint8_t l = buttons_isPressed(BUTTON_LEFT) ? 1:0;
+        //uint8_t r = buttons_isPressed(BUTTON_RIGHT) ? 1:0;
+        //sprintf(printBuffer, "%i %i %i %i %i",c,u,d,l,r);
+        //sharpMemoryLCD_printTextLine(5, "C U D L R", 11);
+        //HAL_Delay(10);
+        //sharpMemoryLCD_printTextLine(6, printBuffer, 11);
+        //HAL_Delay(10);
 
         HAL_Delay(50);
     }
