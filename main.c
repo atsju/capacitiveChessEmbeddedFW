@@ -64,6 +64,7 @@ int main(void)
     while(1)
     {
         SEGGER_RTT_WriteString(0, "SEGGER Hello World\r\n");
+        SEGGER_RTT_printf(0, "test %d\r\n", 1234);
 
         uint16_t meas[NB_CAP_CHAN];
         for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
