@@ -14,6 +14,8 @@
 
 #define NB_BIT_PER_BYTE (8)
 
+#define SPI_TIMEOUT_MS (1000)
+
 SPI_HandleTypeDef SpiHandle;
 
 /**
@@ -50,6 +52,27 @@ static void LCDdisplayEnable(bool en)
     }
 }
 
+/**
+ * @brief adapt the bit and byte order so thats screen prints everything in expected direction
+ * Bits need to be reversed in all bytes for this screen.
+ * And everything needs to be rotated because screen is upside down.
+ *
+ * @param pixelBuf display buffer where one bit is one pixel.
+ * @param nbBytePixelAsciiLine length of buffer. This must be multiple of 2
+ */
+static void reorderBitsToScreen(uint8_t *pixelBuf, uint16_t nbBytePixelAsciiLine)
+{
+    //TODO this could be optimized doing 4 bytes at a time (with __REV instruction)
+    // check length is multiple of 2
+    assert_param((nbBytePixelAsciiLine%2) == 0);
+
+    for(uint16_t b=0; b<nbBytePixelAsciiLine/2; b++)
+    {
+        uint8_t tmp = pixelBuf[b];
+        pixelBuf[b] = pixelBuf[nbBytePixelAsciiLine-1-b];
+        pixelBuf[nbBytePixelAsciiLine-1-b] = tmp;
+    }
+}
 
 /**
  * @brief update the required lines in the screen
@@ -69,27 +92,31 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
     // check the data fits into screen and ends on line boundary
     if(screenLine>0 && (screenLine+(nbBytes*8)/SCREEN_WIDTH)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
     {
+        reorderBitsToScreen(pixelBuf, nbBytes);
         LCDslaveSelect(true);
+        HAL_Delay(1); //TODO this delay could be much less, but need a delay_us function
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
         for(uint16_t i=0; i<(nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH ; i++)
         {
-            cmd_buffer[1] = screenLine+i;
+            // screen is mounted upside down
+            cmd_buffer[1] = SCREEN_HEIGHT-screenLine+i;
             // send "data update" command to correct line
-            if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
+            if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), SPI_TIMEOUT_MS) != HAL_OK)
             {
                 returnSuccess = false;
             }
             // send one line of data from buffer
-            if(HAL_SPI_Transmit(&SpiHandle, pixelBuf+(i*SCREEN_WIDTH/NB_BIT_PER_BYTE), SCREEN_WIDTH/NB_BIT_PER_BYTE, 1000) != HAL_OK)
+            if(HAL_SPI_Transmit(&SpiHandle, pixelBuf+(i*SCREEN_WIDTH/NB_BIT_PER_BYTE), SCREEN_WIDTH/NB_BIT_PER_BYTE, SPI_TIMEOUT_MS) != HAL_OK)
             {
                 returnSuccess= false;
             }
         }
         // send 16 dummy bits
-        if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
+        if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), SPI_TIMEOUT_MS) != HAL_OK)
         {
             returnSuccess= false;
         }
+        HAL_Delay(1); //TODO this delay could be much less, but need a delay_us function
         LCDslaveSelect(false);
     }
     else
@@ -106,17 +133,19 @@ bool sharpMemoryLCD_init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_TIM3_CLK_ENABLE();
+    __HAL_RCC_SPI2_CLK_ENABLE();
 
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
+
     GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
     GPIO_InitStruct.Pin = GPIO_PIN_4;
     /* Pin B0 is EXTCOMIN driven by TIM3_CH1 */
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
     GPIO_InitStruct.Pin = GPIO_PIN_1;
     /* Pin D1 is SPI2 CLK */
     HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -143,9 +172,10 @@ bool sharpMemoryLCD_init(void)
     TimHandle.Instance = TIM3;
     TimHandle.Init.Period        = 65535;
     TimHandle.Init.Prescaler     = 60000; // counter is counting at 120M/60k => 2kHz
-    TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV4; // 500Hz
+    TimHandle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 1=2kHZ 4=500Hz => TODO this statement has no effect on frequency.
     TimHandle.Init.CounterMode   = TIM_COUNTERMODE_UP;
-    TimHandle.Init.Period        = 8; //500/8 => 60Hz period
+    TimHandle.Init.Period        = 32; //2000/32 => 60Hz period
+    TimHandle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
     if (HAL_TIM_PWM_Init(&TimHandle) != HAL_OK)
     {
@@ -171,7 +201,7 @@ bool sharpMemoryLCD_init(void)
     }
 
     SpiHandle.Instance               = SPI2;
-    SpiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; // ===> TODO set correct baudrate to 1Mbps
+    SpiHandle.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_128; // ===> TODO set correct baudrate to 1Mbps
     SpiHandle.Init.Direction         = SPI_DIRECTION_1LINE;
     SpiHandle.Init.CLKPhase          = SPI_PHASE_1EDGE;
     SpiHandle.Init.CLKPolarity       = SPI_POLARITY_LOW;
@@ -201,7 +231,7 @@ bool sharpMemoryLCD_clearScreen(void)
     /* To clear sreen send CMD_CLEAR (3bit) + 16 additional dummy bits */
     uint8_t buffer[] = {CMD_CLEAR, 0x00};
     LCDslaveSelect(true);
-    if(HAL_SPI_Transmit(&SpiHandle, buffer, sizeof(buffer), 1000) != HAL_OK)
+    if(HAL_SPI_Transmit(&SpiHandle, buffer, sizeof(buffer), SPI_TIMEOUT_MS) != HAL_OK)
     {
         returnSuccess= false;
     }
@@ -214,13 +244,13 @@ bool sharpMemoryLCD_clearScreen(void)
 bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar)
 {
     bool returnSuccess = true;
-    uint16_t nbBytePixelAsciiLine= Font16.Height*SCREEN_WIDTH/Font16.Width;
-    uint8_t pixelBuf[nbBytePixelAsciiLine];
-    memset(pixelBuf, 0, nbBytePixelAsciiLine);
+    uint16_t nbBytePixelAsciiLine = Font16.Height*SCREEN_WIDTH/NB_BIT_PER_BYTE;
+    uint8_t pixelBuf[nbBytePixelAsciiLine]  __attribute__((aligned (4)));
+    memset(pixelBuf, 0xFF, nbBytePixelAsciiLine);
 
     if(line < (SCREEN_HEIGHT/Font16.Height))
     {
-        uint16_t screenX=0;
+        uint8_t screenX=0;
         uint16_t XbytesPerFontChar = (Font16.Width+NB_BIT_PER_BYTE-1)/NB_BIT_PER_BYTE;
         uint16_t bytesPerFontChar = XbytesPerFontChar*Font16.Height;
         //end display at first character out of ascii (most common will be \0) or out of screen
@@ -239,9 +269,17 @@ bool sharpMemoryLCD_printTextLine(uint8_t line, const char *text, uint8_t nbChar
                     uint16_t indexCurrentByteInFont = bytesPerFontChar*(text[c]-' ') + XbytesPerFontChar*y + x/8;
                     // TODO could be optimized to do several pixel at one time to go until byte alignement
                     // we need to update pixels inside a byte.
-                    // modify the pixel/bit in the correct byte of the buffer
-                    // by taking the correct bit in the correct byte of font table
-                    pixelBuf[y*SCREEN_WIDTH + screenX/NB_BIT_PER_BYTE] |= (1<<(screenX % NB_BIT_PER_BYTE) & Font16.table[indexCurrentByteInFont]);
+                    // take the correct bit in the correct byte of font table
+                    uint8_t indexCurrentBitInFont = 1<<((NB_BIT_PER_BYTE-1)-(x % NB_BIT_PER_BYTE));
+                    bool fontPixelBit = indexCurrentBitInFont & Font16.table[indexCurrentByteInFont];
+                    if(fontPixelBit)
+                    {
+                        // modify the pixel/bit in the correct byte of the buffer
+                        uint16_t indexCurrentByteInScreen = (y*SCREEN_WIDTH + screenX)/NB_BIT_PER_BYTE;
+                        uint8_t indexCurretnBitInScreen = 1<<((NB_BIT_PER_BYTE-1) - (screenX%NB_BIT_PER_BYTE));
+                        pixelBuf[indexCurrentByteInScreen] ^= indexCurretnBitInScreen;
+                    }
+
                 }
                 screenX++;
             }

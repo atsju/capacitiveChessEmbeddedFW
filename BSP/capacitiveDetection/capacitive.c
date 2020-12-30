@@ -148,7 +148,7 @@ bool capacitive_init(void)
         resultSuccess = false;
     }
 
-    AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV1;          /* Asynchronous clock mode, input ADC clock not divided */
+    AdcHandle.Init.ClockPrescaler        = ADC_CLOCK_ASYNC_DIV256;          /* Asynchronous clock mode, input ADC clock not divided */
     AdcHandle.Init.Resolution            = ADC_RESOLUTION_12B;            /* 12-bit resolution for converted data */
     AdcHandle.Init.DataAlign             = ADC_DATAALIGN_RIGHT;           /* Right-alignment for converted data */
     AdcHandle.Init.ScanConvMode          = DISABLE;                       /* Sequencer disabled (ADC conversion on only 1 channel: channel set on rank 1) */
@@ -175,7 +175,6 @@ bool capacitive_init(void)
     }
 
     sConfig.Rank         = ADC_REGULAR_RANK_1;          /* Rank of sampled channel number ADCx_CHANNEL */
-    // ===> TODO need to check how long the OPAMP needs to stanilize
     sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;  /* Sampling time (number of clock cycles unit) */
     sConfig.SingleDiff   = ADC_SINGLE_ENDED;            /* Single-ended input channel */
     sConfig.OffsetNumber = ADC_OFFSET_NONE;             /* No offset subtraction */
@@ -196,8 +195,8 @@ bool capacitive_getADCvalue(uint16_t *ADCrawMeas)
     // 2) Enable corresponding OPAMP
     HAL_GPIO_WritePin(enIOtable[multiplexPin].port, enIOtable[multiplexPin].pin, GPIO_PIN_RESET);
     // 3) discharge the sample and hold cap by making a measurement to GND
-    // this is made by converting on a channel that is on an output push-pull pin
-    // TODO must be checked if this actually works or if another troivk is needed
+    // this is made by converting VBAT channel which is connected to GND
+    //resultSuccess &= convertADCchannel(ADCrawMeas, ADC_CHANNEL_VBAT);
     resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[(multiplexPin+1)%NB_MULTIPLEX_PINS].adcChan);
     // 4) the charged TOP pin configures to ADC input
     GPIO_InitTypeDef GPIO_InitStruct;
@@ -207,6 +206,7 @@ bool capacitive_getADCvalue(uint16_t *ADCrawMeas)
     GPIO_InitStruct.Pin = topIOtable[multiplexPin].pin;
     HAL_GPIO_Init(topIOtable[multiplexPin].port, &GPIO_InitStruct);
     // 5) sample and hold the TOP plate (will discharge "parasitic" cap into sample and hold)
+    //resultSuccess &= convertADCchannel(ADCrawMeas, ADC_CHANNEL_VBAT);
     resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[multiplexPin].adcChan);
     // 6) put everything back to original configuration
     // pin top is output
