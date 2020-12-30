@@ -22,7 +22,7 @@ bool sharpMemoryLCD_clearScreen(void);
  * Whole line is erased when printing even if string is shorter.
  * Other line stay untouched.
  *
- * @param line line number from 1 to 8
+ * @param line line number from 0 to 7
  * @param text pointer to the string to print
  * @param nbChar length of the string to display
  */

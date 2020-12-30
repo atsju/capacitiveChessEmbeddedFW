@@ -14,6 +14,8 @@
 
 #define NB_BIT_PER_BYTE (8)
 
+#define SPI_TIMEOUT_MS (1000)
+
 SPI_HandleTypeDef SpiHandle;
 
 /**
@@ -99,18 +101,18 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
             // screen is mounted upside down
             cmd_buffer[1] = SCREEN_HEIGHT-screenLine+i;
             // send "data update" command to correct line
-            if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
+            if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), SPI_TIMEOUT_MS) != HAL_OK)
             {
                 returnSuccess = false;
             }
             // send one line of data from buffer
-            if(HAL_SPI_Transmit(&SpiHandle, pixelBuf+(i*SCREEN_WIDTH/NB_BIT_PER_BYTE), SCREEN_WIDTH/NB_BIT_PER_BYTE, 1000) != HAL_OK)
+            if(HAL_SPI_Transmit(&SpiHandle, pixelBuf+(i*SCREEN_WIDTH/NB_BIT_PER_BYTE), SCREEN_WIDTH/NB_BIT_PER_BYTE, SPI_TIMEOUT_MS) != HAL_OK)
             {
                 returnSuccess= false;
             }
         }
         // send 16 dummy bits
-        if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), 1000) != HAL_OK)
+        if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), SPI_TIMEOUT_MS) != HAL_OK)
         {
             returnSuccess= false;
         }
@@ -229,7 +231,7 @@ bool sharpMemoryLCD_clearScreen(void)
     /* To clear sreen send CMD_CLEAR (3bit) + 16 additional dummy bits */
     uint8_t buffer[] = {CMD_CLEAR, 0x00};
     LCDslaveSelect(true);
-    if(HAL_SPI_Transmit(&SpiHandle, buffer, sizeof(buffer), 1000) != HAL_OK)
+    if(HAL_SPI_Transmit(&SpiHandle, buffer, sizeof(buffer), SPI_TIMEOUT_MS) != HAL_OK)
     {
         returnSuccess= false;
     }
