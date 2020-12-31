@@ -91,7 +91,9 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
     uint8_t nbScreenLines = (nbBytes*NB_BIT_PER_BYTE)/SCREEN_WIDTH;
 
     // check the data fits into screen and ends on line boundary
-    if(screenLine>0 && (screenLine+nbScreenLines-1)<=SCREEN_HEIGHT && (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0)
+    bool lineFitVertically = screenLine>0 && (screenLine+nbScreenLines-1)<=SCREEN_HEIGHT;
+    bool lineFitHorizontally = (nbBytes%(SCREEN_WIDTH/NB_BIT_PER_BYTE))==0;
+    if(lineFitVertically && lineFitHorizontally)
     {
         reorderBitsToScreen(pixelBuf, nbBytes);
         LCDslaveSelect(true);
@@ -99,8 +101,9 @@ static bool LCDupdateDisplay(uint8_t screenLine, uint8_t *pixelBuf, uint16_t nbB
         uint8_t cmd_buffer[2] = {CMD_DATA_UPDATE, 0x00};
         for(uint16_t i=0; i<nbScreenLines ; i++)
         {
-            // screen is mounted upside down
-            cmd_buffer[1] = (((SCREEN_HEIGHT-screenLine)+1)-nbScreenLines)+i;
+            // screen is mounted upside down so we need to calculate the actual line number correcponding to the one requested by user
+            uint8_t lineNumber = (((SCREEN_HEIGHT-screenLine)+1)-nbScreenLines)+i;
+            cmd_buffer[1] = lineNumber;
             // send "data update" command to correct line
             if(HAL_SPI_Transmit(&SpiHandle, cmd_buffer, sizeof(cmd_buffer), SPI_TIMEOUT_MS) != HAL_OK)
             {
