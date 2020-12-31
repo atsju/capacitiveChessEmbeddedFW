@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 #define NB_ADC_MEAS_AVG_CALIB (64)
-#define NB_ADC_MEAS_AVG_DETECT (64)
+#define NB_ADC_MEAS_AVG_DETECT (8)
 
 static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
@@ -27,6 +27,7 @@ int main(void)
     //TODO test the SMPS
     //TODO test the USB
     capacitive_init();
+    HAL_Delay(500); //ensure all OPAMPS are ON
     //TODO test the EPD screen
     //TODO write of find some delay function because it will be needed
 
@@ -34,20 +35,45 @@ int main(void)
     led_init();
     led_blinkTest();
 
+    SEGGER_RTT_WriteString(0, "-- Board startup --\r\n");
+
     sharpMemoryLCD_printTextLine(0, "calibrating", 11);
     HAL_Delay(10);
 
     uint16_t rawADC;
+    uint16_t rawValsCalib[NB_CAP_CHAN][NB_ADC_MEAS_AVG_CALIB];
     uint16_t calibs[NB_CAP_CHAN];
+
+    for(uint8_t i=0; i<NB_ADC_MEAS_AVG_CALIB; i++)
+    {
+        for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+        {
+            capacitive_getADCvalue(chan, &rawADC);
+            rawValsCalib[chan][i] = rawADC;
+        }
+    }
+
+    // compute mean values
     for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
     {
         uint32_t mean = 0;
         for(uint8_t i=0; i<NB_ADC_MEAS_AVG_CALIB; i++)
         {
-            capacitive_getADCvalue(chan, &rawADC);
-            mean += rawADC;
+            mean +=  rawValsCalib[chan][i];
         }
         calibs[chan] = mean/NB_ADC_MEAS_AVG_CALIB;
+    }
+
+    SEGGER_RTT_WriteString(0, "calib values\r\n");
+    SEGGER_RTT_WriteString(0, "1    2    3    4    5    6    7    8    a    b    c    d    e    f    g    h\r\n");
+    for(uint8_t i=0; i<NB_ADC_MEAS_AVG_CALIB; i++)
+    {
+        for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+        {
+            SEGGER_RTT_printf(0, "%d ",rawValsCalib[chan][i]);
+        }
+        SEGGER_RTT_WriteString(0, "\r\n");
+        HAL_Delay(1);
     }
 
     char printBuffer[11];
@@ -66,23 +92,35 @@ int main(void)
         SEGGER_RTT_WriteString(0, "SEGGER Hello World\r\n");
         SEGGER_RTT_printf(0, "test %d\r\n", 1234);
 
-        uint16_t meas[NB_CAP_CHAN];
+        uint16_t rawMeas[NB_CAP_CHAN][NB_ADC_MEAS_AVG_DETECT];
+        uint16_t meanMeas[NB_CAP_CHAN];
+        for(uint8_t i=0; i<NB_ADC_MEAS_AVG_DETECT; i++)
+        {
+            for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+            {
+                capacitive_getADCvalue(chan, &rawADC);
+                rawMeas[chan][i] = rawADC;
+            }
+        }
+
+
+        // compute mean values
         for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
         {
             uint32_t mean = 0;
             for(uint8_t i=0; i<NB_ADC_MEAS_AVG_DETECT; i++)
             {
-                capacitive_getADCvalue(chan, &rawADC);
-                mean += rawADC;
+                mean +=  rawMeas[chan][i];
             }
-            meas[chan] = mean/NB_ADC_MEAS_AVG_DETECT;
+            meanMeas[chan] = mean/NB_ADC_MEAS_AVG_DETECT;
         }
+
 
 
         for(uint8_t i=0; i<NB_CAP_CHAN/2; i++)
         {
             // one line and one colums value per screen line
-            sprintf(printBuffer, "%1i %4i %4i", i, calibs[i]-meas[i], calibs[i+NB_CAP_CHAN/2]-meas[i+NB_CAP_CHAN/2]);
+            sprintf(printBuffer, "%1i %4i %4i", i, meanMeas[i]-calibs[i], meanMeas[i+NB_CAP_CHAN/2]-calibs[i+NB_CAP_CHAN/2]);
             sharpMemoryLCD_printTextLine(i, printBuffer, 11);
             HAL_Delay(10);
         }

@@ -7,6 +7,8 @@
  */
 #define NB_MULTIPLEX_PINS    (16)
 
+#define OPAMP_STABILIZATION_DELAY_MS (2)
+
 typedef struct {
     GPIO_TypeDef *const port;
     uint32_t pin;
@@ -134,7 +136,8 @@ bool capacitive_init(void)
         // init EN pins to output VCC (MCP6043 has CSN pin)
         GPIO_InitStruct.Pin = enIOtable[i].pin;
         HAL_GPIO_Init(enIOtable[i].port, &GPIO_InitStruct);
-        HAL_GPIO_WritePin(enIOtable[i].port, enIOtable[i].pin, GPIO_PIN_SET);
+        // enable all opamps (they are soldered to have separate shields)
+        HAL_GPIO_WritePin(enIOtable[i].port, enIOtable[i].pin, GPIO_PIN_RESET);
     }
 
     /* **** Init the ADC **** */
@@ -175,7 +178,7 @@ bool capacitive_init(void)
     }
 
     sConfig.Rank         = ADC_REGULAR_RANK_1;          /* Rank of sampled channel number ADCx_CHANNEL */
-    sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;  /* Sampling time (number of clock cycles unit) */
+    sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;  /* Sampling time (number of clock cycles unit) */
     sConfig.SingleDiff   = ADC_SINGLE_ENDED;            /* Single-ended input channel */
     sConfig.OffsetNumber = ADC_OFFSET_NONE;             /* No offset subtraction */
 
@@ -191,30 +194,27 @@ bool capacitive_getADCvalue(uint8_t capChannel, uint16_t *ADCrawMeas)
 
     // 1) charge the correct TOP plate to VCC
     HAL_GPIO_WritePin(topIOtable[capChannel].port, topIOtable[capChannel].pin, GPIO_PIN_SET);
-    // 2) Enable corresponding OPAMP
-    HAL_GPIO_WritePin(enIOtable[capChannel].port, enIOtable[capChannel].pin, GPIO_PIN_RESET);
-    // 3) discharge the sample and hold cap by making a measurement to GND
-    // this is made by converting VBAT channel which is connected to GND
-    //resultSuccess &= convertADCchannel(ADCrawMeas, ADC_CHANNEL_VBAT);
-    resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[(capChannel+1)%NB_MULTIPLEX_PINS].adcChan);
-    // 4) the charged TOP pin configures to ADC input
+    HAL_Delay(OPAMP_STABILIZATION_DELAY_MS);
+    // 2) discharge the sample and hold cap by making a measurement to GND
+    // this is made by converting the channel while pin is configured as output
+    // doing 2 measurements gives more reproductible results
+    resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[capChannel].adcChan);
+    resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[capChannel].adcChan);
+    // 3) the charged TOP pin configures to ADC input
     GPIO_InitTypeDef GPIO_InitStruct;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG_ADC_CONTROL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Pin = topIOtable[capChannel].pin;
     HAL_GPIO_Init(topIOtable[capChannel].port, &GPIO_InitStruct);
-    // 5) sample and hold the TOP plate (will discharge "parasitic" cap into sample and hold)
-    //resultSuccess &= convertADCchannel(ADCrawMeas, ADC_CHANNEL_VBAT);
+    // 4) sample and hold the TOP plate (will discharge "parasitic" cap into sample and hold)
     resultSuccess &= convertADCchannel(ADCrawMeas, topIOtable[capChannel].adcChan);
-    // 6) put everything back to original configuration
+    // 5) put everything back to original configuration
     // pin top is output
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     HAL_GPIO_Init(topIOtable[capChannel].port, &GPIO_InitStruct);
     // pin top LOW level
     HAL_GPIO_WritePin(topIOtable[capChannel].port, topIOtable[capChannel].pin, GPIO_PIN_RESET);
-    // disable OPAMP
-    HAL_GPIO_WritePin(enIOtable[capChannel].port, enIOtable[capChannel].pin, GPIO_PIN_SET);
 
     return resultSuccess;
 }
