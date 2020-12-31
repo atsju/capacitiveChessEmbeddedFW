@@ -178,7 +178,7 @@ bool capacitive_init(void)
     }
 
     sConfig.Rank         = ADC_REGULAR_RANK_1;          /* Rank of sampled channel number ADCx_CHANNEL */
-    sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;  /* Sampling time (number of clock cycles unit) */
+    sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;  /* Sampling time (number of clock cycles unit) */
     sConfig.SingleDiff   = ADC_SINGLE_ENDED;            /* Single-ended input channel */
     sConfig.OffsetNumber = ADC_OFFSET_NONE;             /* No offset subtraction */
 
