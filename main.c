@@ -4,6 +4,7 @@
 #include "buttons.h"
 #include "capacitive.h"
 #include "led.h"
+#include "SMPS.h"
 #include "SEGGER_RTT.h"
 #include <stdio.h>
 
@@ -16,10 +17,19 @@ static void Error_Handler(void);
 int main(void)
 {
     HAL_Init();
+    BSP_SMPS_Init(0);
+    // connect VDD12 after 100ms
+    BSP_SMPS_Supply_Enable(100,0);
     SystemClockHSI_Config();
+    // choose internal voltage scale 2 so that external VDD12 is effectively used
+    __HAL_RCC_PWR_CLK_ENABLE();
+    HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE2);
+
     HAL_Delay(100);
     sharpMemoryLCD_init();
     HAL_Delay(100);
+
+
 
 
     //TODO test the buttons

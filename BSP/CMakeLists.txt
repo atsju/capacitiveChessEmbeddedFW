@@ -40,5 +40,6 @@ add_library(SMPS INTERFACE)
 target_sources(SMPS INTERFACE SMPS/SMPS.c)
 target_include_directories(SMPS INTERFACE SMPS)
 target_link_libraries(SMPS INTERFACE
-    HAL::STM32::L4::GPIO)
+    HAL::STM32::L4::GPIO
+    HAL::STM32::L4::PWREx)
 

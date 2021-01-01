@@ -3,29 +3,25 @@
 #include <stm32l4xx_hal.h>
 
 
-#define PORT_SMPS               GPIOA
-#define PIN_SMPS_ENABLE         GPIO_PIN_4
-#define PIN_SMPS_V1             GPIO_PIN_5
-#define PIN_SMPS_POWERGOOD      GPIO_PIN_6
-#define PIN_SMPS_SWITCH_ENABLE  GPIO_PIN_7
+#define PORT_SMPS               GPIOC
+//#define PIN_SMPS_ENABLE         GPIO_PIN_4
+//#define PIN_SMPS_V1             GPIO_PIN_5
+//#define PIN_SMPS_POWERGOOD      GPIO_PIN_6
+#define PIN_SMPS_SWITCH_ENABLE  GPIO_PIN_6
 
-#define PWR_GPIO_SMPS           PWR_GPIO_A
-#define PWR_GPIO_ENABLE         PWR_GPIO_BIT_4
-#define PWR_GPIO_SWITCH_ENABLE  PWR_GPIO_BIT_7
-#define PWR_PU_REG              PUCRA
+#define PWR_GPIO_SMPS           PWR_GPIO_C
+//#define PWR_GPIO_ENABLE         PWR_GPIO_BIT_4
+#define PWR_GPIO_SWITCH_ENABLE  PWR_GPIO_BIT_6
+#define PWR_PU_REG              PUCRC
 
-#define NUCLEO_SMPS_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOA_CLK_ENABLE()
-#define NUCLEO_SMPS_GPIO_CLK_DISABLE() __HAL_RCC_GPIOA_CLK_DISABLE()
+#define NUCLEO_SMPS_GPIO_CLK_ENABLE()  __HAL_RCC_GPIOC_CLK_ENABLE()
+#define NUCLEO_SMPS_GPIO_CLK_DISABLE() __HAL_RCC_GPIOC_CLK_DISABLE()
 
 #define PWR_AND_CLK_SMPS()   do { __HAL_RCC_PWR_CLK_ENABLE(); \
-                                  __HAL_RCC_GPIOA_CLK_ENABLE(); } while(0)
+                                  __HAL_RCC_GPIOC_CLK_ENABLE(); } while(0)
 
 
-/**
-  * @brief  DeInitialize the external SMPS component
-  * @note   Low power consumption GPIO settings
-  * @retval SMPS status
-  */
+
 uint32_t BSP_SMPS_DeInit(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct;
@@ -41,7 +37,7 @@ uint32_t BSP_SMPS_DeInit(void)
   HAL_Delay(1);
 
   /* Disable SMPS */
-  HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_ENABLE, GPIO_PIN_RESET);
+//  HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_ENABLE, GPIO_PIN_RESET);
 
   /* --------------------------------------------------------------------------------------  */
   /* Set all GPIO in output push/pull pulldown state to reduce power consumption  */
@@ -50,20 +46,13 @@ uint32_t BSP_SMPS_DeInit(void)
   GPIO_InitStruct.Pull =  GPIO_PULLDOWN;
 
   /* Consider all SMPS pins but V1, not used on ADP5301ACBZ */
-  GPIO_InitStruct.Pin = PIN_SMPS_ENABLE | PIN_SMPS_SWITCH_ENABLE | PIN_SMPS_POWERGOOD;
+  GPIO_InitStruct.Pin = /*PIN_SMPS_ENABLE | */PIN_SMPS_SWITCH_ENABLE /*| PIN_SMPS_POWERGOOD*/;
   HAL_GPIO_Init(PORT_SMPS, &GPIO_InitStruct);
 
   return SMPS_OK;
 }
 
-/**
-  * @brief  Initialize the external SMPS component
-  * @param  VoltageRange: Select operating SMPS supply
-  *           @arg DCDC_AND_BOARD_DEPENDENT
-  * @note   VoltageRange is not used with all boards. When not
-  *         used, resort to PWR_REGULATOR_VOLTAGE_SCALE2 by default.
-  * @retval SMPS status
-  */
+
 uint32_t BSP_SMPS_Init(uint32_t VoltageRange)
 {
   PWR_AND_CLK_SMPS();
@@ -73,14 +62,14 @@ uint32_t BSP_SMPS_Init(uint32_t VoltageRange)
   /* Reconfigure PWR_PUCRx/PDCRx registers only when not coming */
   /* back from Standby or Shutdown states.                      */
   /* Consider as well non-SMPS related pins.                     */
-  if (!(READ_BIT(PWR->PWR_PU_REG, PWR_GPIO_ENABLE)))
+  if (!(READ_BIT(PWR->PWR_PU_REG, PWR_GPIO_SWITCH_ENABLE)))
   {
     HAL_PWREx_EnableGPIOPullDown(PWR_GPIO_SMPS, PWR_GPIO_SWITCH_ENABLE);
-    HAL_PWREx_EnableGPIOPullDown(PWR_GPIO_SMPS, PWR_GPIO_ENABLE);
+    //HAL_PWREx_EnableGPIOPullDown(PWR_GPIO_SMPS, PWR_GPIO_ENABLE);
 
     /* HW limitation: Level shifter consumes because of dangling, so pull PA2 up
       (LPUART1_TX), PA13 (SWD/TMS) and PB3 (SWO) */
-    HAL_PWREx_EnableGPIOPullUp(PWR_GPIO_A, GPIO_PIN_2); /* LPUART1_TX */
+    //HAL_PWREx_EnableGPIOPullUp(PWR_GPIO_A, GPIO_PIN_2); /* LPUART1_TX */
     HAL_PWREx_EnableGPIOPullUp(PWR_GPIO_A, GPIO_PIN_13); /* SWD/TMS    */
     HAL_PWREx_EnableGPIOPullUp(PWR_GPIO_B, GPIO_PIN_3); /* SWO        */
 
@@ -90,12 +79,12 @@ uint32_t BSP_SMPS_Init(uint32_t VoltageRange)
       Standby or Shutdown modes entering */
   }
   /* ------------------------------------------------------------------------ */
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-
-  GPIO_InitStruct.Pin = PIN_SMPS_POWERGOOD;
-  HAL_GPIO_Init(PORT_SMPS, &GPIO_InitStruct);
+//  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+//  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+//  GPIO_InitStruct.Pull = GPIO_PULLUP;
+//
+//  GPIO_InitStruct.Pin = PIN_SMPS_POWERGOOD;
+//  HAL_GPIO_Init(PORT_SMPS, &GPIO_InitStruct);
 
   /* ------------------------------------------------------------------------ */
 
@@ -103,7 +92,7 @@ uint32_t BSP_SMPS_Init(uint32_t VoltageRange)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
 
-  GPIO_InitStruct.Pin = PIN_SMPS_ENABLE | PIN_SMPS_SWITCH_ENABLE;
+  GPIO_InitStruct.Pin = /*PIN_SMPS_ENABLE |*/ PIN_SMPS_SWITCH_ENABLE;
   HAL_GPIO_Init(PORT_SMPS, &GPIO_InitStruct);
 
   /* --------- SMPS VOLTAGE RANGE SELECTION ----------------------------------*/
@@ -130,50 +119,34 @@ uint32_t BSP_SMPS_Init(uint32_t VoltageRange)
   return SMPS_OK;
 }
 
-/**
-  * @brief  Enable the external SMPS component
-  * @param  Delay: delay in ms after enable
-  * @param  Power_Good_Check: Enable Power good check
-  * @note   Power_Good_Check is not used with all external
-  *         SMPS components
-  * @retval SMPS status
-  *           @arg SMPS_OK: SMPS ENABLE OK
-  *           @arg SMPS_KO: POWER GOOD CHECK FAILS
-  */
+
 uint32_t BSP_SMPS_Enable(uint32_t Delay, uint32_t Power_Good_Check)
 {
-  PWR_AND_CLK_SMPS();
-
-  HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_ENABLE, GPIO_PIN_SET);
-
+//  PWR_AND_CLK_SMPS();
+//
+//  HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_ENABLE, GPIO_PIN_SET);
+//
   /* Delay upon request */
   if (Delay != 0)
   {
     HAL_Delay(Delay);
   }
-
-  /* CHECK POWER GOOD or NOT */
-  if (Power_Good_Check != 0)
-  {
-    if (GPIO_PIN_RESET == (HAL_GPIO_ReadPin(PORT_SMPS, PIN_SMPS_POWERGOOD)))
-    {
-      /* POWER GOOD KO */
-      return SMPS_KO;
-    }
-  }
+//
+//  /* CHECK POWER GOOD or NOT */
+//  if (Power_Good_Check != 0)
+//  {
+//    if (GPIO_PIN_RESET == (HAL_GPIO_ReadPin(PORT_SMPS, PIN_SMPS_POWERGOOD)))
+//    {
+//      /* POWER GOOD KO */
+//      return SMPS_KO;
+//    }
+//  }
 
   /* SMPS ENABLED */
   return SMPS_OK;
 }
 
-/**
-  * @brief  Disable the external SMPS component
-  * @note   SMPS SWITCH should be disabled first !
-  * @retval SMPS status
-  *           @arg SMPS_OK: SMPS DISABLE OK - DONE
-  *           @arg SMPS_KO: POWER GOOD CHECK FAILS
-  *
-  */
+
 uint32_t BSP_SMPS_Disable(void)
 {
 
@@ -187,21 +160,12 @@ uint32_t BSP_SMPS_Disable(void)
   }
 
   /* Disable SMPS */
-  HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_ENABLE, GPIO_PIN_RESET);
+  //HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_ENABLE, GPIO_PIN_RESET);
 
   /* SMPS DISABLED */
   return SMPS_OK;
 }
 
-/**
-  * @brief  Enable the external SMPS SWITCH component
-  * @param  Delay: delay in ms before SMPS SWITCH ENABLE
-  * @param  Power_Good_Check: Enable Power good check
-  * @note   Power_Good_Check is not used with all boards
-  * @retval SMPS status
-  *           @arg SMPS_OK: SMPS ENABLE OK
-  *           @arg SMPS_KO: POWER GOOD CHECK FAILS
-  */
 uint32_t BSP_SMPS_Supply_Enable(uint32_t Delay, uint32_t Power_Good_Check)
 {
   PWR_AND_CLK_SMPS();
@@ -211,14 +175,14 @@ uint32_t BSP_SMPS_Supply_Enable(uint32_t Delay, uint32_t Power_Good_Check)
     HAL_Delay(Delay);
   }
   /* CHECK POWER GOOD or NOT */
-  if (Power_Good_Check != 0)
-  {
-    if (GPIO_PIN_RESET == (HAL_GPIO_ReadPin(PORT_SMPS, PIN_SMPS_POWERGOOD)))
-    {
-      /* POWER GOOD KO */
-      return SMPS_KO;
-    }
-  }
+  //if (Power_Good_Check != 0)
+  //{
+  //  if (GPIO_PIN_RESET == (HAL_GPIO_ReadPin(PORT_SMPS, PIN_SMPS_POWERGOOD)))
+  //  {
+  //    /* POWER GOOD KO */
+  //    return SMPS_KO;
+  //  }
+  //}
 
   /* SMPS SWITCH ENABLE */
   HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_SWITCH_ENABLE, GPIO_PIN_SET);
@@ -227,11 +191,6 @@ uint32_t BSP_SMPS_Supply_Enable(uint32_t Delay, uint32_t Power_Good_Check)
   return SMPS_OK;
 }
 
-/**
-  * @brief  Disable the external SMPS SWITCH component
-  * @retval SMPS status
-  *           @arg SMPS_OK: SMPS SWITCH DISABLE OK
-  */
 uint32_t BSP_SMPS_Supply_Disable(void)
 {
   PWR_AND_CLK_SMPS();
