@@ -24,6 +24,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     capacitiveDetection
     led
     SeggerRTT
+    SMPS
 )
 
 
