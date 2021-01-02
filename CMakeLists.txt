@@ -13,6 +13,7 @@ add_subdirectory(Segger)
 add_executable(capacitiveChessboardEmbeddedFW.elf main.c)
 target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     HAL::STM32::L4::RCC
+    HAL::STM32::L4::RCCEx
     HAL::STM32::L4::GPIO
     HAL::STM32::L4::CORTEX
     HAL::STM32::L4::PWREx
