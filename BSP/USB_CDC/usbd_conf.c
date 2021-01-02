@@ -458,4 +458,15 @@ void USBD_static_free(void *p)
 
 }
 
+
+/**
+  * @brief  This function handles USB-On-The-Go FS global interrupt request.
+  * @param  None
+  * @retval None
+  */
+void OTG_FS_IRQHandler(void)
+{
+  HAL_PCD_IRQHandler(&hpcd);
+}
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
