@@ -25,6 +25,7 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     led
     SeggerRTT
     SMPS
+    USB_CDC
 )
 
 

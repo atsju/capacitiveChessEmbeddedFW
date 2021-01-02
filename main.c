@@ -6,6 +6,12 @@
 #include "led.h"
 #include "SMPS.h"
 #include "SEGGER_RTT.h"
+
+#include "usbd_core.h"
+#include "usbd_desc.h"
+#include "usbd_cdc.h"
+#include "usbd_cdc_interface.h"
+
 #include <stdio.h>
 
 #define NB_ADC_MEAS_AVG_CALIB (64)
@@ -13,6 +19,10 @@
 
 static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
+
+
+USBD_HandleTypeDef USBD_Device;
+
 
 int main(void)
 {
@@ -24,8 +34,22 @@ int main(void)
     // choose internal voltage scale 2 so that external VDD12 is effectively used
     __HAL_RCC_PWR_CLK_ENABLE();
     HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE2);
-
     HAL_Delay(100);
+
+    /* enable USB power on Pwrctrl CR2 register */
+    HAL_PWREx_EnableVddUSB();
+    /* Init Device Library */
+    USBD_Init(&USBD_Device, &VCP_Desc, 0);
+    /* Add Supported Class */
+    USBD_RegisterClass(&USBD_Device, USBD_CDC_CLASS);
+    /* Add CDC Interface Class */
+    USBD_CDC_RegisterInterface(&USBD_Device, &USBD_CDC_fops);
+
+    /* Start Device Process */
+    USBD_Start(&USBD_Device);
+
+
+
     sharpMemoryLCD_init();
     HAL_Delay(100);
 

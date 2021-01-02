@@ -43,3 +43,22 @@ target_link_libraries(SMPS INTERFACE
     HAL::STM32::L4::GPIO
     HAL::STM32::L4::PWREx)
 
+add_library(USB_CDC INTERFACE)
+target_sources(USB_CDC INTERFACE
+    USB_CDC/usbd_conf.c
+    USB_CDC/usbd_desc.c
+    USB_CDC/usbd_cdc_interface.c
+    ../STM32CubeL4/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+    ../STM32CubeL4/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+    ../STM32CubeL4/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+    ../STM32CubeL4/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c)
+target_include_directories(USB_CDC INTERFACE
+    USB_CDC
+    ../STM32CubeL4/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+    ../STM32CubeL4/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc)
+target_link_libraries(USB_CDC INTERFACE
+    HAL::STM32::L4::GPIO
+    HAL::STM32::L4::PCD
+    HAL::STM32::L4::PCDEx
+    HAL::STM32::L4::LL_USB)
+
