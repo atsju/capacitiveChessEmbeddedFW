@@ -1,0 +1,211 @@
+Inspired from ST_STM32F769_Modified_Traceconfig.JLinkScript
+
+/*********************************************************************
+*
+*       OnTraceStart()
+*
+*  Function description
+*    If present, called right before trace is started.
+*    Used to initialize MCU specific trace related things like configuring the trace pins for alternate function.
+*
+*  Return value
+*    >= 0:  O.K.
+*     < 0:  Error
+*
+*  Notes
+*    (1) May use high-level API functions like JLINK_MEM_ etc.
+*    (2) Should not call JLINK_TARGET_Halt(). Can rely on target being halted when entering this function
+*/
+int OnTraceStart(void) {
+  U32 RCC_AHB1ENR_Addr;
+  U32 GPIOC_MODER_Addr;
+  U32 GPIOC_PUPDR_Addr;
+  U32 GPIOC_OSPEEDR_Addr;
+  U32 GPIOC_AFRL_Addr;
+  U32 GPIOD_MODER_Addr;
+  U32 GPIOD_PUPDR_Addr;
+  U32 GPIOD_OSPEEDR_Addr;
+  U32 GPIOD_AFRL_Addr;
+  U32 GPIOE_MODER_Addr;
+  U32 GPIOE_PUPDR_Addr;
+  U32 GPIOE_OSPEEDR_Addr;
+  U32 GPIOE_AFRL_Addr;
+  U32 DBGMCU_CR_Addr;
+  U32 iTCLK;
+  U32 iTD0;
+  U32 iTD1;
+  U32 iTD2;
+  U32 iTD3;
+  U32 EdgeTCLK;
+  U32 EdgeTD;
+  U32 v;
+  U32 PortWidth;
+  //
+  // Adjust sampling point of trace pin (Optional: not needed for this cpu)
+  //
+  //JLINK_ExecCommand("TraceSampleAdjust TD=2000"); 
+  //
+  // Set Trace Portwidth(Optional): Default 4 Pin Trace, other possibilities: 1, 2, 4
+  //
+  //JLINK_TRACE_PortWidth = 4;
+  //
+  //
+  //   PE2  => TCLK
+  //   PC9  => TD0
+  //   PC10 => TD1
+  //   PD2  => TD2
+  //   PC12 => TD3
+  //
+  //
+  // Init register addresses
+  //
+  JLINK_SYS_Report("Start: Initializing trace pins");
+  RCC_AHB1ENR_Addr   = 0x40023830;
+  GPIOC_MODER_Addr   = 0x48000800;
+  GPIOC_PUPDR_Addr   = 0x4800080C;
+  GPIOC_OSPEEDR_Addr = 0x48000808;
+  GPIOC_AFRL_Addr    = 0x48000820;
+  GPIOD_MODER_Addr   = 0x48000C00;
+  GPIOD_PUPDR_Addr   = 0x48000C0C;
+  GPIOD_OSPEEDR_Addr = 0x48000C08;
+  GPIOD_AFRL_Addr    = 0x48000C20;
+  GPIOE_MODER_Addr   = 0x48001000;
+  GPIOE_PUPDR_Addr   = 0x4800100C;
+  GPIOE_OSPEEDR_Addr = 0x48001008;
+  GPIOE_AFRL_Addr    = 0x48001020;
+  DBGMCU_CR_Addr     = 0xE0042004;
+  iTCLK = 2;
+  iTD0  = 9;
+  iTD1  = 10;
+  iTD2  = 2;
+  iTD3  = 12;
+  PortWidth = JLINK_TRACE_PortWidth;
+  //
+  // Set drivestrength 
+  // 0: Low speed
+  // 1: Medium speed
+  // 2: High speed
+  // 3: Very high speed
+  //
+  EdgeTCLK = 3;
+  EdgeTD   = 3;
+  //
+  // Init pins
+  //
+  v  = JLINK_MEM_ReadU32(RCC_AHB1ENR_Addr);
+  JLINK_MEM_WriteU32(RCC_AHB1ENR_Addr, v | 1 << 4); // Enable clock for GPIOE
+  //
+  // TCLK init
+  //
+  v  =  JLINK_MEM_ReadU32(GPIOE_MODER_Addr);
+  v  &= ~(3 << (2 * iTCLK));               // Mask Mode register
+  v  |= (2 << (2 * iTCLK));                // Set alt function mode
+  JLINK_MEM_WriteU32(GPIOE_MODER_Addr, v);
+  v  =  JLINK_MEM_ReadU32(GPIOE_PUPDR_Addr);
+  v  &= ~(3 << (2 * iTCLK));               // Mask PUP register
+  v  |= (1 << (2 * iTCLK));                // Set PUP register (Pullup)
+  JLINK_MEM_WriteU32(GPIOE_PUPDR_Addr, v);
+  v  =  JLINK_MEM_ReadU32(GPIOE_OSPEEDR_Addr);
+  v  &= ~(3 << (2 * iTCLK));               // Mask OSPEED register
+  v  |= (EdgeTCLK << (2 * iTCLK));                // Set OSPEED register (very high speed)
+  JLINK_MEM_WriteU32(GPIOE_OSPEEDR_Addr, v);
+  v  =  JLINK_MEM_ReadU32(GPIOE_AFRL_Addr);
+  v  &= ~(15 << (4 * iTCLK));              // Select alt func 0
+  JLINK_MEM_WriteU32(GPIOE_AFRL_Addr, v);
+  //
+  // TD0 init
+  //
+  v  =  JLINK_MEM_ReadU32(GPIOC_MODER_Addr);
+  v  &= ~(3 << (2 * iTD0));               // Mask Mode register
+  v  |= (2 << (2 * iTD0));                // Set alt function mode
+  JLINK_MEM_WriteU32(GPIOC_MODER_Addr, v);
+  v  =  JLINK_MEM_ReadU32(GPIOC_PUPDR_Addr);
+  v  &= ~(3 << (2 * iTD0));               // Mask PUP register
+  v  |= (1 << (2 * iTD0));                // Set PUP register (Pullup)
+  JLINK_MEM_WriteU32(GPIOC_PUPDR_Addr, v);
+  v  =  JLINK_MEM_ReadU32(GPIOC_OSPEEDR_Addr);
+  v  &= ~(3 << (2 * iTD0));               // Mask OSPEED register
+  v  |= (EdgeTD << (2 * iTD0));                // Set OSPEED register (very high speed)
+  JLINK_MEM_WriteU32(GPIOC_OSPEEDR_Addr, v);
+  v  =  JLINK_MEM_ReadU32(GPIOC_AFRL_Addr);
+  v  &= ~(15 << (4 * iTD0));              // Select alt func 0
+  JLINK_MEM_WriteU32(GPIOC_AFRL_Addr, v);
+  //
+  // TD1 init
+  //
+  if (PortWidth > 1) {
+      v  =  JLINK_MEM_ReadU32(GPIOC_MODER_Addr);
+      v  &= ~(3 << (2 * iTD1));               // Mask Mode register
+      v  |= (2 << (2 * iTD1));                // Set alt function mode
+      JLINK_MEM_WriteU32(GPIOC_MODER_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOC_PUPDR_Addr);
+      v  &= ~(3 << (2 * iTD1));               // Mask PUP register
+      v  |= (1 << (2 * iTD1));                // Set PUP register (Pullup)
+      JLINK_MEM_WriteU32(GPIOC_PUPDR_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOC_OSPEEDR_Addr);
+      v  &= ~(3 << (2 * iTD1));               // Mask OSPEED register
+      v  |= (EdgeTD << (2 * iTD1));                // Set OSPEED register (very high speed)
+      JLINK_MEM_WriteU32(GPIOC_OSPEEDR_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOC_AFRL_Addr);
+      v  &= ~(15 << (4 * iTD1));              // Select alt func 0
+      JLINK_MEM_WriteU32(GPIOC_AFRL_Addr, v);
+  }
+  //
+  // TD2 & TD3 init
+  //
+  if (PortWidth > 2) {
+      //
+      // TD2 init
+      //
+      v  =  JLINK_MEM_ReadU32(GPIOD_MODER_Addr);
+      v  &= ~(3 << (2 * iTD2));               // Mask Mode register
+      v  |= (2 << (2 * iTD2));                // Set alt function mode
+      JLINK_MEM_WriteU32(GPIOD_MODER_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOD_PUPDR_Addr);
+      v  &= ~(3 << (2 * iTD2));               // Mask PUP register
+      v  |= (1 << (2 * iTD2));                // Set PUP register (Pullup)
+      JLINK_MEM_WriteU32(GPIOD_PUPDR_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOD_OSPEEDR_Addr);
+      v  &= ~(3 << (2 * iTD2));               // Mask OSPEED register
+      v  |= (EdgeTD << (2 * iTD2));                // Set OSPEED register (very high speed)
+      JLINK_MEM_WriteU32(GPIOD_OSPEEDR_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOD_AFRL_Addr);
+      v  &= ~(15 << (4 * iTD2));              // Select alt func 0
+      JLINK_MEM_WriteU32(GPIOD_AFRL_Addr, v);
+      //
+      // TD3 init
+      //
+      v  =  JLINK_MEM_ReadU32(GPIOC_MODER_Addr);
+      v  &= ~(3 << (2 * iTD3));               // Mask Mode register
+      v  |= (2 << (2 * iTD3));                // Set alt function mode
+      JLINK_MEM_WriteU32(GPIOC_MODER_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOC_PUPDR_Addr);
+      v  &= ~(3 << (2 * iTD3));               // Mask PUP register
+      v  |= (1 << (2 * iTD3));                // Set PUP register (Pullup)
+      JLINK_MEM_WriteU32(GPIOC_PUPDR_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOC_OSPEEDR_Addr);
+      v  &= ~(3 << (2 * iTD3));               // Mask OSPEED register
+      v  |= (EdgeTD << (2 * iTD3));                // Set OSPEED register (very high speed)
+      JLINK_MEM_WriteU32(GPIOC_OSPEEDR_Addr, v);
+      v  =  JLINK_MEM_ReadU32(GPIOC_AFRL_Addr);
+      v  &= ~(15 << (4 * iTD3));              // Select alt func 0
+      JLINK_MEM_WriteU32(GPIOC_AFRL_Addr, v);
+      //
+      // Enable trace and set portwidth
+      //
+      v  =  JLINK_MEM_ReadU32(DBGMCU_CR_Addr);               // Debug MCU sets how many Pins to use for trace (STM32 specific)
+      v  &= ~(7 << 5);               // Mask Register
+      v  |= (7 << 5);                // Enable Trace and Select configured Tracepins for Trace
+      JLINK_MEM_WriteU32(DBGMCU_CR_Addr, v);
+  }
+  if (PortWidth < 3){
+    JLINK_SYS_Report("DBGMCU Init");
+    v  =  JLINK_MEM_ReadU32(DBGMCU_CR_Addr);               // Debug MCU sets how many Pins to use for trace (STM32 specific)
+    v  &= ~(7 << 5);               // Mask Register
+    v  |= (1 << 5);                // Enable Trace
+    v  |= ((PortWidth) << 6);                // Enable Trace and Select configured Tracepins for Trace
+    JLINK_MEM_WriteU32(DBGMCU_CR_Addr, v);
+  }
+  JLINK_SYS_Report("End: Initializing trace pins");
+  return 0;
+}
