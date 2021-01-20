@@ -13,6 +13,13 @@ find_package(FreeRTOS COMPONENTS ARM_CM4F REQUIRED)
 add_subdirectory(BSP)
 add_subdirectory(Segger)
 
+add_library(arm_math INTERFACE)
+target_sources(arm_math INTERFACE   ${STM32_CUBE_L4_PATH}/Drivers/CMSIS/DSP/Source/StatisticsFunctions/arm_mean_f32.c
+                                    ${STM32_CUBE_L4_PATH}/Drivers/CMSIS/DSP/Source/StatisticsFunctions/arm_std_f32.c)
+target_include_directories(arm_math INTERFACE ${STM32_CUBE_L4_PATH}/Drivers/CMSIS/DSP/Include)
+
+
+
 add_executable(capacitiveChessboardEmbeddedFW.elf main.c)
 target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     FreeRTOS::Timers
@@ -31,6 +38,8 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     led
     SeggerRTT
     SMPS
+    arm_math
+    m
 )
 
 

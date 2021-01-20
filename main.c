@@ -6,6 +6,7 @@
 #include "led.h"
 #include "SMPS.h"
 #include "SEGGER_RTT.h"
+#include "arm_math.h"
 #include <FreeRTOS.h>
 #include <task.h>
 #include <stdio.h>
@@ -17,6 +18,13 @@ static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
 static void mainTask(void *arg);
 
+// made global to avoid stack usage with freeRTOS
+float calibRawMeas[NB_CAP_CHAN][NB_ADC_MEAS_AVG_CALIB];
+float calibsMean[NB_CAP_CHAN];
+float calibsStdDev[NB_CAP_CHAN];
+float detectRawMeas[NB_CAP_CHAN][NB_ADC_MEAS_AVG_DETECT];
+float detectMean[NB_CAP_CHAN];
+float detectStdDev[NB_CAP_CHAN];
 
 static void mainTask(void *arg)
 {
@@ -45,28 +53,29 @@ static void mainTask(void *arg)
     vTaskDelay(10);
 
     uint16_t rawADC;
-    uint16_t rawValsCalib[NB_CAP_CHAN][NB_ADC_MEAS_AVG_CALIB];
-    uint16_t calibs[NB_CAP_CHAN];
+
 
     for(uint8_t i=0; i<NB_ADC_MEAS_AVG_CALIB; i++)
     {
         for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
         {
             capacitive_getADCvalue(chan, &rawADC);
-            rawValsCalib[chan][i] = rawADC;
+            calibRawMeas[chan][i] = rawADC;
         }
     }
 
-    // compute mean values
+    // compute mean values and standard deviation
     for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
     {
-        uint32_t mean = 0;
-        for(uint8_t i=0; i<NB_ADC_MEAS_AVG_CALIB; i++)
-        {
-            mean +=  rawValsCalib[chan][i];
-        }
-        calibs[chan] = mean/NB_ADC_MEAS_AVG_CALIB;
+        arm_mean_f32(calibRawMeas[chan], NB_ADC_MEAS_AVG_CALIB, &(calibsMean[chan]));
+        arm_std_f32(calibRawMeas[chan], NB_ADC_MEAS_AVG_CALIB, &(calibsStdDev[chan]));
     }
+
+
+
+
+
+    vTaskDelay(1);
 
     SEGGER_RTT_WriteString(0, "calib values\r\n");
     SEGGER_RTT_WriteString(0, "1    2    3    4    5    6    7    8    a    b    c    d    e    f    g    h\r\n");
@@ -74,18 +83,34 @@ static void mainTask(void *arg)
     {
         for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
         {
-            SEGGER_RTT_printf(0, "%d ",rawValsCalib[chan][i]);
+            SEGGER_RTT_printf(0, "%d ",(uint16_t)calibRawMeas[chan][i]);
         }
         SEGGER_RTT_WriteString(0, "\r\n");
         vTaskDelay(1);
     }
+    SEGGER_RTT_WriteString(0, "mean values\r\n");
+    for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+    {
+        SEGGER_RTT_printf(0, "%d ",(uint16_t)calibsMean[chan]);
+    }
+    SEGGER_RTT_WriteString(0, "\r\n");
+    vTaskDelay(1);
+    SEGGER_RTT_WriteString(0, "std dev values\r\n");
+    for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+    {
+        SEGGER_RTT_printf(0, "%d ",(uint16_t)calibsStdDev[chan]);
+    }
+    SEGGER_RTT_WriteString(0, "\r\n");
+    vTaskDelay(1);
+
+
 
     char printBuffer[11];
 
     for(uint8_t i=0; i<NB_CAP_CHAN/2; i++)
     {
         // one line and one colums value per screen line
-        sprintf(printBuffer, "%1i %4i %4i", i, calibs[i], calibs[i+NB_CAP_CHAN/2]);
+        sprintf(printBuffer, "%1i %4i %4i", i, (uint16_t)calibsMean[i], (uint16_t)calibsMean[i+NB_CAP_CHAN/2]);
         sharpMemoryLCD_printTextLine(i, printBuffer, 11);
         vTaskDelay(10);
     }
@@ -94,41 +119,37 @@ static void mainTask(void *arg)
 
     xTaskCreate(led_squareTask, "led_squareTask", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
 
-
+    SEGGER_RTT_WriteString(0, "std dev values real measurements\r\n");
     while(1)
     {
-        SEGGER_RTT_WriteString(0, "SEGGER Hello World\r\n");
-        SEGGER_RTT_printf(0, "test %d\r\n", 1234);
-
-        uint16_t rawMeas[NB_CAP_CHAN][NB_ADC_MEAS_AVG_DETECT];
-        uint16_t meanMeas[NB_CAP_CHAN];
         for(uint8_t i=0; i<NB_ADC_MEAS_AVG_DETECT; i++)
         {
             for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
             {
                 capacitive_getADCvalue(chan, &rawADC);
-                rawMeas[chan][i] = rawADC;
+                detectRawMeas[chan][i] = rawADC;
             }
         }
 
 
-        // compute mean values
+        // compute mean values and standard deviation
         for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
         {
-            uint32_t mean = 0;
-            for(uint8_t i=0; i<NB_ADC_MEAS_AVG_DETECT; i++)
-            {
-                mean +=  rawMeas[chan][i];
-            }
-            meanMeas[chan] = mean/NB_ADC_MEAS_AVG_DETECT;
+            arm_mean_f32(detectRawMeas[chan], NB_ADC_MEAS_AVG_DETECT, &(detectMean[chan]));
+            arm_std_f32(detectRawMeas[chan], NB_ADC_MEAS_AVG_DETECT, &(detectStdDev[chan]));
         }
 
+        for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
+        {
+            SEGGER_RTT_printf(0, "%d ",(uint16_t)detectStdDev[chan]);
+        }
+        SEGGER_RTT_WriteString(0, "\r\n");
 
 
         for(uint8_t i=0; i<NB_CAP_CHAN/2; i++)
         {
             // one line and one colums value per screen line
-            sprintf(printBuffer, "%1i %4i %4i", i, meanMeas[i]-calibs[i], meanMeas[i+NB_CAP_CHAN/2]-calibs[i+NB_CAP_CHAN/2]);
+            sprintf(printBuffer, "%1i %4i %4i", i, (int16_t)(detectMean[i]-calibsMean[i]), (int16_t)(detectMean[i+NB_CAP_CHAN/2]-calibsMean[i+NB_CAP_CHAN/2]));
             sharpMemoryLCD_printTextLine(i, printBuffer, 11);
             vTaskDelay(10);
         }
