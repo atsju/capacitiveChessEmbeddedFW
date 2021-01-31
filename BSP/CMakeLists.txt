@@ -11,16 +11,19 @@ add_library(sharpMemoryLCD INTERFACE)
 target_sources(sharpMemoryLCD INTERFACE sharpMemoryLCD/LS013B7DH03.c)
 target_include_directories(sharpMemoryLCD INTERFACE sharpMemoryLCD)
 target_link_libraries(sharpMemoryLCD INTERFACE
+    font
     HAL::STM32::L4::GPIO
-    HAL::STM32::L4::TIM
     HAL::STM32::L4::SPI
-    font)
+    HAL::STM32::L4::TIM)
 
 add_library(led INTERFACE)
 target_sources(led INTERFACE LED/led.c)
 target_include_directories(led INTERFACE LED)
 target_link_libraries(led INTERFACE
-    HAL::STM32::L4::GPIO)
+    HAL::STM32::L4::GPIO
+    FreeRTOS::ARM_CM4F
+    FreeRTOS::Heap::1
+    FreeRTOS::Timers)
 
 add_library(buttons INTERFACE)
 target_sources(buttons INTERFACE buttons/buttons.c)
@@ -32,9 +35,9 @@ add_library(capacitiveDetection INTERFACE)
 target_sources(capacitiveDetection INTERFACE capacitiveDetection/capacitive.c)
 target_include_directories(capacitiveDetection INTERFACE capacitiveDetection)
 target_link_libraries(capacitiveDetection INTERFACE
-    HAL::STM32::L4::GPIO
     HAL::STM32::L4::ADC
-    HAL::STM32::L4::ADCEx)
+    HAL::STM32::L4::ADCEx
+    HAL::STM32::L4::GPIO)
 
 add_library(SMPS INTERFACE)
 target_sources(SMPS INTERFACE SMPS/SMPS.c)
@@ -42,4 +45,3 @@ target_include_directories(SMPS INTERFACE SMPS)
 target_link_libraries(SMPS INTERFACE
     HAL::STM32::L4::GPIO
     HAL::STM32::L4::PWREx)
-
