@@ -10,8 +10,8 @@ find_package(HAL COMPONENTS STM32L4 REQUIRED)
 add_subdirectory(BSP)
 add_subdirectory(Segger)
 
-add_executable(capacitiveChessboardEmbeddedFW.elf main.c)
-target_link_libraries(capacitiveChessboardEmbeddedFW.elf
+add_executable(capacitiveChessboardEmbeddedFW main.c)
+target_link_libraries(capacitiveChessboardEmbeddedFW
     HAL::STM32::L4::RCC
     HAL::STM32::L4::GPIO
     HAL::STM32::L4::CORTEX
@@ -29,6 +29,6 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
 
 
 #always display the code size
-ADD_CUSTOM_TARGET(do_always ALL COMMAND arm-none-eabi-size --format=berkeley "capacitiveChessboardEmbeddedFW.elf"
+ADD_CUSTOM_TARGET(do_always ALL COMMAND arm-none-eabi-size --format=berkeley capacitiveChessboardEmbeddedFW.elf
                                 DEPENDS capacitiveChessboardEmbeddedFW.elf)
 
