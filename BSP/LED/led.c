@@ -105,7 +105,7 @@ void led_blinkTest(void)
 
 void led_squareTask(void *arg)
 {
-    static uint8_t alternateColLedOn;
+    static bool alternateColLedOn = false;
 
     while(1)
     {
@@ -116,18 +116,17 @@ void led_squareTask(void *arg)
 
         if(led_squareTaskInfo.led_STI_isOn)
         {
-            uint8_t raw = led_squareTaskInfo.led_STI_row;
+            uint8_t row = led_squareTaskInfo.led_STI_row;
             uint8_t col = led_squareTaskInfo.led_STI_col;
-            if(alternateColLedOn != 0)
+            if(!alternateColLedOn)
             {
                 col++;
             }
-            HAL_GPIO_WritePin(cathodeLedIOtable[raw].port, cathodeLedIOtable[raw].pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(cathodeLedIOtable[raw+1].port, cathodeLedIOtable[raw+1].pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(cathodeLedIOtable[row].port, cathodeLedIOtable[row].pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(cathodeLedIOtable[row+1].port, cathodeLedIOtable[row+1].pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(anodeLedIOtable[col].port, anodeLedIOtable[col].pin, GPIO_PIN_SET);
 
-            alternateColLedOn++;
-            alternateColLedOn %= 2;
+            alternateColLedOn = !alternateColLedOn;
 
             xSemaphoreGive(led_squareTaskInfo.led_STI_mutexHandle);
         }

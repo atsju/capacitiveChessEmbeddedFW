@@ -21,7 +21,7 @@ typedef struct
 } led_squareTaskInfo_st;
 
 /**
- * @brief This variable is used to exchange information with ethe LED managing task
+ * @brief This variable is used to exchange information with the LED managing task
  *
  */
 extern led_squareTaskInfo_st led_squareTaskInfo;

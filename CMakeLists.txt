@@ -22,6 +22,8 @@ target_include_directories(arm_math INTERFACE ${STM32_CUBE_L4_PATH}/Drivers/CMSI
 
 add_executable(capacitiveChessboardEmbeddedFW.elf main.c)
 target_link_libraries(capacitiveChessboardEmbeddedFW.elf
+    BSP
+    CMSIS::STM32::L4P5VG
     FreeRTOS::Timers
     FreeRTOS::Heap::1
     FreeRTOS::ARM_CM4F
@@ -29,21 +31,18 @@ target_link_libraries(capacitiveChessboardEmbeddedFW.elf
     HAL::STM32::L4::GPIO
     HAL::STM32::L4::CORTEX
     HAL::STM32::L4::PWREx
-    CMSIS::STM32::L4P5VG
     STM32::NoSys
-    BSP
-    sharpMemoryLCD
+    arm_math
     buttons
     capacitiveDetection
     led
-    SeggerRTT
-    SMPS
-    arm_math
     m
+    SeggerRTT
+    sharpMemoryLCD
+    SMPS
 )
 
 
 #always display the code size
 ADD_CUSTOM_TARGET(do_always ALL COMMAND arm-none-eabi-size --format=berkeley "capacitiveChessboardEmbeddedFW.elf"
                                 DEPENDS capacitiveChessboardEmbeddedFW.elf)
-

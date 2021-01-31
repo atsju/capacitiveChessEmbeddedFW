@@ -35,7 +35,7 @@ uint32_t BSP_SMPS_DeInit(void)
 
   /* Disable SMPS SWITCH */
   HAL_GPIO_WritePin(PORT_SMPS, PIN_SMPS_SWITCH_ENABLE, GPIO_PIN_RESET);
-
+  // ensure switch has time to open
   vTaskDelay(1);
 
   /* Disable SMPS */
