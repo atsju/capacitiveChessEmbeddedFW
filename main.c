@@ -13,6 +13,9 @@
 
 #define NB_ADC_MEAS_AVG_CALIB (64)
 #define NB_ADC_MEAS_AVG_DETECT (8)
+#define MAX_STD_DEV_VARIATION (3.0f)
+#define MIN_MEAN_VARIATION  (10u)
+#define MAX_MEAN_VARIATION  (100u)
 
 static void SystemClockHSI_Config(void);
 static void Error_Handler(void);
@@ -99,6 +102,7 @@ static void mainTask(void *arg)
     for(uint8_t chan=0; chan<NB_CAP_CHAN; chan++)
     {
         SEGGER_RTT_printf(0, "%d ",(uint16_t)calibsStdDev[chan]);
+        calibsStdDev[chan] *= MAX_STD_DEV_VARIATION;
     }
     SEGGER_RTT_WriteString(0, "\r\n");
     vTaskDelay(1);
@@ -116,8 +120,8 @@ static void mainTask(void *arg)
     }
     vTaskDelay(500);
 
-
-    xTaskCreate(led_squareTask, "led_squareTask", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, NULL);
+    TaskHandle_t led_squareTaskHandle;
+    xTaskCreate(led_squareTask, "led_squareTask", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1, &led_squareTaskHandle);
 
     SEGGER_RTT_WriteString(0, "std dev values real measurements\r\n");
     while(1)
@@ -154,8 +158,46 @@ static void mainTask(void *arg)
             vTaskDelay(10);
         }
 
+        bool allStdDevAcceptable = true;
+        uint8_t nbAcceptableCol = 0;
+        uint8_t nbAcceptableRow = 0;
+        uint8_t detectedRow, detectedCol;
+        for(uint8_t i=0; i<NB_CAP_CHAN/2; i++)
+        {
+            if(detectStdDev[i]>calibsStdDev[i] || detectStdDev[i+NB_CAP_CHAN/2]>calibsStdDev[i+NB_CAP_CHAN/2])
+            {
+                allStdDevAcceptable = false;
+            }
 
-        vTaskDelay(50);
+            if((detectMean[i]-calibsMean[i]) >= MIN_MEAN_VARIATION && (detectMean[i]-calibsMean[i]) <= MAX_MEAN_VARIATION)
+            {
+                nbAcceptableRow++;
+                detectedRow = i;
+            }
+            if((detectMean[i+NB_CAP_CHAN/2]-calibsMean[i+NB_CAP_CHAN/2]) >= MIN_MEAN_VARIATION && (detectMean[i+NB_CAP_CHAN/2]-calibsMean[i+NB_CAP_CHAN/2]) <= MAX_MEAN_VARIATION)
+            {
+                nbAcceptableCol++;
+                detectedCol = i;
+            }
+        }
+        if(nbAcceptableRow==1 && nbAcceptableCol==1 && allStdDevAcceptable)
+        {
+            // light up corresponding cell
+            xSemaphoreTake(led_squareTaskInfo.led_STI_mutexHandle, portMAX_DELAY);
+            led_squareTaskInfo.led_STI_row = detectedRow;
+            led_squareTaskInfo.led_STI_col = detectedCol;
+            led_squareTaskInfo.led_STI_isOn = true;
+            xSemaphoreGive(led_squareTaskInfo.led_STI_mutexHandle);
+            vTaskResume(led_squareTaskHandle);
+        }
+        else
+        {
+            // do not light up anything
+            xSemaphoreTake(led_squareTaskInfo.led_STI_mutexHandle, portMAX_DELAY);
+            led_squareTaskInfo.led_STI_isOn = false;
+            xSemaphoreGive(led_squareTaskInfo.led_STI_mutexHandle);
+        }
+
     }
 }
 
@@ -165,11 +207,11 @@ int main(void)
 
     led_squareTaskInfo.led_STI_mutexHandle = xSemaphoreCreateMutex();
     // wait for mutex infinite time
-    xSemaphoreTake(led_squareTaskInfo.led_STI_mutexHandle, portMAX_DELAY);
-    led_squareTaskInfo.led_STI_row = 5;
-    led_squareTaskInfo.led_STI_col = 2;
-    led_squareTaskInfo.led_STI_isOn = true;
-    xSemaphoreGive(led_squareTaskInfo.led_STI_mutexHandle);
+    //xSemaphoreTake(led_squareTaskInfo.led_STI_mutexHandle, portMAX_DELAY);
+    //led_squareTaskInfo.led_STI_row = 5;
+    //led_squareTaskInfo.led_STI_col = 2;
+    //led_squareTaskInfo.led_STI_isOn = true;
+    //xSemaphoreGive(led_squareTaskInfo.led_STI_mutexHandle);
 
     xTaskCreate(mainTask, "mainTask", configMINIMAL_STACK_SIZE*8, NULL, tskIDLE_PRIORITY + 1, NULL);
     vTaskStartScheduler();
